@@ -3,6 +3,9 @@
 import { useState } from 'preact/hooks';
 import { cx, fmtInt, fmtPct, fmtPts, largestRemainder } from '@/lib/format.mjs';
 import { Panel } from '@/ui/Panel.jsx';
+import { MetricIcon } from '@/ui/MetricIcon.jsx';
+import { Icon } from '@/ui/Icon.jsx';
+import { motiveIcon } from '@/lib/icons.mjs';
 import { deltaTone } from '@/ui/Delta.jsx';
 
 const GROUPS = [
@@ -13,12 +16,12 @@ const GROUPS = [
   ['asl', 'Autosupresión', 'bg-asl']
 ];
 
-function Kpi({ label, value, delta, better, note, order = 0 }) {
+function Kpi({ label, value, delta, better, note, order = 0, metric }) {
   const tone = delta == null ? 'text-ink-muted' : deltaTone(delta, better);
   const text = delta == null ? note : Math.abs(delta) < 0.0005 ? 'Igual a lo normal' : `${delta > 0 ? '▲' : '▼'} ${fmtPts(Math.abs(delta)).replace('+', '')} vs lo normal`;
   return (
     <div class="anim-rise flex flex-col gap-1.5 border-l-2 border-line-strong py-1 pl-3.5" style={{ '--delay': `${order * 60}ms` }}>
-      <span class="text-[12.5px] font-semibold text-ink-muted">{label}</span>
+      <span class="flex items-center gap-2 text-[12.5px] font-semibold text-ink-muted"><MetricIcon metric={metric} size="size-6" iconSize={14} />{label}</span>
       <b class="text-[22px] leading-none font-bold">{value}</b>
       <span class={cx('text-xs font-semibold', tone)}>{text}</span>
     </div>
@@ -84,7 +87,9 @@ function Motives({ detail, onAll }) {
             const diff = motive.share - motive.normal;
             return (
               <div key={motive.code} class="grid grid-cols-[minmax(0,1fr)_56px_76px] items-center gap-x-2.5 gap-y-1">
-                <span class="truncate text-[13px] font-semibold" title={`${motive.code}${motive.description ? `: ${motive.description}` : ''}`}>{motive.name}</span>
+                <span class="flex min-w-0 items-center gap-2 text-[13px] font-semibold" title={`${motive.code}${motive.description ? `: ${motive.description}` : ''}`}>
+                  <Icon name={motiveIcon(motive.code, motive.origin)} size={15} class={cx('flex-none', motive.origin === 'blq' ? 'text-blq' : 'text-asl')} /><span class="truncate">{motive.name}</span>
+                </span>
                 <b class="text-right text-[13px]">{fmtPct(motive.share)}</b>
                 <span class={cx('text-right text-xs font-semibold', Math.abs(diff) < 0.01 ? 'text-ink-muted' : diff > 0 ? 'text-danger' : 'text-success')}>{fmtPts(diff)}</span>
                 <span class="relative h-2 rounded bg-surface-muted">
@@ -127,12 +132,12 @@ export function SummaryTab({ detail, onAllMotives }) {
     <div class="@container flex flex-col gap-4">
       {/* 6, 3 o 2 por fila según el ancho del bloque: nunca uno solo en la última fila. */}
       <div class="grid grid-cols-2 gap-x-2.5 gap-y-4 @lg:grid-cols-3 @4xl:grid-cols-6">
-        <Kpi order={0} label="Audiencia" value={fmtInt(record.base)} note="Base antes de exclusiones" />
-        <Kpi order={1} label="No enviados" value={fmtPct(rates.drop)} delta={diff('drop')} better="down" />
-        <Kpi order={2} label="Enviados" value={fmtInt(record.sends)} note={`${fmtPct(record.base ? record.sends / record.base : null)} de la audiencia`} />
-        <Kpi order={3} label="Entrega" value={fmtPct(rates.deliv)} delta={diff('deliv')} better="up" />
-        <Kpi order={4} label="Apertura" value={fmtPct(rates.or)} delta={diff('or')} better="up" />
-        <Kpi order={5} label="CTOR" value={fmtPct(rates.ctor)} delta={diff('ctor')} better="up" />
+        <Kpi order={0} metric="audience" label="Audiencia" value={fmtInt(record.base)} note="Base antes de exclusiones" />
+        <Kpi order={1} metric="drop" label="No enviados" value={fmtPct(rates.drop)} delta={diff('drop')} better="down" />
+        <Kpi order={2} metric="sends" label="Enviados" value={fmtInt(record.sends)} note={`${fmtPct(record.base ? record.sends / record.base : null)} de la audiencia`} />
+        <Kpi order={3} metric="deliv" label="Entrega" value={fmtPct(rates.deliv)} delta={diff('deliv')} better="up" />
+        <Kpi order={4} metric="or" label="Apertura" value={fmtPct(rates.or)} delta={diff('or')} better="up" />
+        <Kpi order={5} metric="ctor" label="CTOR" value={fmtPct(rates.ctor)} delta={diff('ctor')} better="up" />
       </div>
       <Waffle detail={detail} />
       <div class="grid grid-cols-[repeat(auto-fit,minmax(min(380px,100%),1fr))] items-start gap-4">

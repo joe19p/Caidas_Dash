@@ -6,6 +6,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import { cx, fmtInt, fmtPct } from '@/lib/format.mjs';
 import { metricFold } from '@shared/metrics.mjs';
 import { Icon } from '@/ui/Icon.jsx';
+import { DESTINATION_ICONS, motiveIcon } from '@/lib/icons.mjs';
 import { Segmented } from '@/ui/Segmented.jsx';
 import { readStored, writeStored } from '@/services/storage.mjs';
 
@@ -70,8 +71,9 @@ function Box({ id, refs, tone = 'border-line bg-surface', class: className = '',
   return <div ref={element => { refs.current[id] = element; }} class={cx('flex flex-col gap-1 rounded-[10px] border px-3 py-2.5', tone, className)} style={style}>{children}</div>;
 }
 
-const Label = ({ dot, children, class: className = '' }) => (
-  <span class={cx('flex items-center gap-2 text-[13px] font-semibold', className)}>{dot && <span class={cx('size-[9px] flex-none rounded-[3px]', dot)} />}{children}</span>
+/** Nombre de una caja con el ícono de su destino (icon, en el color iconClass). */
+const Label = ({ icon, iconClass = 'text-ink-muted', children, class: className = '' }) => (
+  <span class={cx('flex items-center gap-2 text-[13px] font-semibold', className)}>{icon && <Icon name={icon} size={16} class={cx('flex-none', iconClass)} />}{children}</span>
 );
 const Big = ({ children }) => <span class="text-xl leading-tight font-bold">{children}</span>;
 const Note = ({ children }) => <span class="text-xs leading-snug text-ink-muted">{children}</span>;
@@ -226,7 +228,12 @@ ${motive.description || ''}`).includes(needle);
                 </tr>
                 {rows.map(motive => (
                   <tr key={motive.code} class="border-t border-line align-top hover:bg-surface-muted/60">
-                    <td class="py-2.5 pr-2.5 pl-[42px]"><span class="flex flex-col"><b class="font-semibold">{motive.name}</b><span class="text-[11.5px] text-ink-muted">{motive.code}</span></span></td>
+                    <td class="py-2.5 pr-2.5 pl-[34px]">
+                      <span class="flex items-start gap-2">
+                        <Icon name={motiveIcon(motive.code, motive.origin)} size={15} class={cx('mt-0.5 flex-none', motive.origin === 'blq' ? 'text-blq' : 'text-asl')} />
+                        <span class="flex flex-col"><b class="font-semibold">{motive.name}</b><span class="text-[11.5px] text-ink-muted">{motive.code}</span></span>
+                      </span>
+                    </td>
                     <td class="px-2.5 py-2.5 text-right font-bold">{fmtInt(motive.count)}</td>
                     <td class="px-2.5 py-2.5 text-right">{fmtPct(motive.share, 2)}</td>
                     <td class="px-2.5 py-2.5 text-right text-ink-muted">{fmtPct(motive.count / base, 2)}</td>
@@ -326,7 +333,7 @@ export function FunnelTab({ detail }) {
 
           <Box id="aud" refs={nodes} tone="border-chrome bg-chrome" class="funnel-enter justify-between p-3.5 text-white" style={place(1, '2 / span 4')}>
             <span class="flex flex-col gap-1.5">
-              <Label>Audiencia total</Label>
+              <Label icon="users" iconClass="text-white">Audiencia total</Label>
               <span class="text-[26px] leading-none font-extrabold">{fmtInt(r.base)}</span>
               <span class="text-xs leading-snug text-white/75">Todos los contactos seleccionados para la comunicación, antes de cualquier filtro.</span>
             </span>
@@ -334,13 +341,13 @@ export function FunnelTab({ detail }) {
           </Box>
 
           <Box id="env" refs={nodes} tone="border-ent bg-surface" class="funnel-enter justify-center" style={place(2, '2 / span 2')}>
-            <span class="flex justify-between gap-2"><Label dot="bg-ent">Enviados</Label><b class="text-xs">{pct(sends, base)}</b></span>
+            <span class="flex justify-between gap-2"><Label icon="send" iconClass="text-ent">Enviados</Label><b class="text-xs">{pct(sends, base)}</b></span>
             <Big>{fmtInt(sends)}</Big>
             <span class="mt-1 h-1 rounded-sm bg-surface-muted"><span class="block h-full rounded-sm bg-ent" style={{ width: `${(sends / base) * 100}%` }} /></span>
             <Note>Marketing Cloud intentó enviarles el correo.</Note>
           </Box>
           <Box id="nenv" refs={nodes} tone="border-line-strong bg-surface" class="funnel-enter" style={place(2, '4 / span 2')}>
-            <span class="flex justify-between gap-2"><Label dot="bg-ink-muted">No enviados</Label><b class="text-xs">{pct(notSent, base)}</b></span>
+            <span class="flex justify-between gap-2"><Label icon="funnel">No enviados</Label><b class="text-xs">{pct(notSent, base)}</b></span>
             <Big>{fmtInt(notSent)}</Big>
             <span class="mt-1 h-1 rounded-sm bg-surface-muted"><span class="block h-full rounded-sm bg-ink-muted" style={{ width: `${(notSent / base) * 100}%` }} /></span>
             <Note>Excluidos antes del envío.</Note>
@@ -353,54 +360,54 @@ export function FunnelTab({ detail }) {
 
           {show2 && <>
             <Box id="ent" refs={nodes} class="funnel-enter" style={place(3, 2)}>
-              <Label dot="bg-ent">Entregados</Label>
+              <Label icon={DESTINATION_ICONS.ent} iconClass="text-ent">Entregados</Label>
               <Big>{fmtInt(r.deliv)}</Big>
               <Note><b class="text-ink">{pct(r.deliv, sends)}</b> de enviados. Llegaron a la bandeja de entrada.</Note>
               {pillarToggle('ent', 'entregados')}
             </Box>
             {show3('ent') && (
               <Box id="eng" refs={nodes} class="funnel-enter" style={place(4, 2)}>
-                <Label>Aperturas y clics</Label>
+                <Label icon="mailOpen">Aperturas y clics</Label>
                 <Mini rows={[['Tasa de apertura (OR)', pct(r.opens, r.deliv)], ['Aperturas únicas', fmtInt(r.opens)], ['Aperturas totales', fmtInt(r.opensCum)],
                   ['CTOR', pct(r.clicks, r.opens)], ['Clics únicos', fmtInt(r.clicks)], ['Clics totales', fmtInt(r.clicksCum)]]} />
               </Box>
             )}
 
             <Box id="reb" refs={nodes} class="funnel-enter" style={place(3, 3)}>
-              <Label dot="bg-reb">Rebotes</Label>
+              <Label icon={DESTINATION_ICONS.reb} iconClass="text-reb">Rebotes</Label>
               <Big>{fmtInt(r.bounces)}</Big>
               <Note><b class="text-ink">{pct(r.bounces, sends, 2)}</b> de enviados. No se pudieron entregar.</Note>
               {pillarToggle('reb', 'rebotes')}
             </Box>
             {show3('reb') && (
               <Box id="dreb" refs={nodes} class="funnel-enter" style={place(4, 3)}>
-                <Label>Desglose de rebotes</Label>
+                <Label icon={DESTINATION_ICONS.reb}>Desglose de rebotes</Label>
                 <Mini rows={[['Hard', fmtInt(r.hard)], ['Soft', fmtInt(r.soft)], ['Desconocido', fmtInt(r.unknown)], ['Técnico', fmtInt(r.tech)], ['Bloqueo', fmtInt(r.block)]]} />
               </Box>
             )}
 
             <Box id="asl" refs={nodes} tone="border-transparent bg-asl-soft" class="funnel-enter" style={place(3, 4)}>
-              <Label dot="bg-asl" class="text-asl-ink">Listas de autosupresión</Label>
+              <Label icon={DESTINATION_ICONS.asl} iconClass="text-asl" class="text-asl-ink">Listas de autosupresión</Label>
               <Big>{fmtInt(detail.asl)}</Big>
               <Note><b class="text-ink">{pct(detail.asl, notSent)}</b> de no enviados. Reglas del CRM que excluyen a propósito.</Note>
               {pillarToggle('asl', 'autosupresión')}
             </Box>
             {show3('asl') && (
               <Box id="dasl" refs={nodes} class="funnel-enter" style={place(4, 4)}>
-                <Label>Desglose de autosupresión</Label>
+                <Label icon={DESTINATION_ICONS.asl}>Desglose de autosupresión</Label>
                 <Mini rows={topOf(detail.motives, 'asl', detail.asl, 'Otras listas')} />
               </Box>
             )}
 
             <Box id="blq" refs={nodes} tone="border-transparent bg-blq-soft" class="funnel-enter" style={place(3, 5)}>
-              <Label dot="bg-blq" class="text-blq-ink">Bloqueos preventivos</Label>
+              <Label icon={DESTINATION_ICONS.blq} iconClass="text-blq" class="text-blq-ink">Bloqueos preventivos</Label>
               <Big>{fmtInt(detail.blq)}</Big>
               <Note><b class="text-ink">{pct(detail.blq, notSent)}</b> de no enviados. Marketing Cloud no intenta entregar: bajas, retenidos y similares.</Note>
               {pillarToggle('blq', 'bloqueos')}
             </Box>
             {show3('blq') && (
               <Box id="dblq" refs={nodes} class="funnel-enter" style={place(4, 5)}>
-                <Label>Desglose de bloqueos</Label>
+                <Label icon={DESTINATION_ICONS.blq}>Desglose de bloqueos</Label>
                 <Mini rows={topOf(detail.motives, 'blq', detail.blq, 'Otros')} />
               </Box>
             )}

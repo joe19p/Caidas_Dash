@@ -11,6 +11,8 @@ import { Segmented } from '@/ui/Segmented.jsx';
 import { Sparkline } from '@/ui/Sparkline.jsx';
 import { Panel } from '@/ui/Panel.jsx';
 import { Icon } from '@/ui/Icon.jsx';
+import { MetricIcon } from '@/ui/MetricIcon.jsx';
+import { familyIcon } from '@/lib/icons.mjs';
 import { deltaTone } from '@/ui/Delta.jsx';
 import { Skeleton, EmptyState, ErrorState } from '@/ui/States.jsx';
 import { messageText } from '@shared/messages.mjs';
@@ -49,7 +51,7 @@ function HeroComms({ period, history, active, onPick }) {
   return (
     <button type="button" aria-pressed={active} onClick={onPick}
       class={cx('panel flex flex-col gap-2 px-6 pt-5 pb-3.5 text-left', active ? 'border-brand-text ring-3 ring-brand-soft' : '')}>
-      <span class="text-[13px] font-bold text-ink-muted">Comunicaciones distintas enviadas</span>
+      <span class="flex items-center gap-2 text-[13px] font-bold text-ink-muted"><MetricIcon metric="comms" />Comunicaciones distintas enviadas</span>
       <span class="flex flex-wrap items-baseline gap-x-3.5 gap-y-1.5">
         <b class="text-[52px] leading-none font-extrabold tracking-tight">{fmtInt(period.kpis.comms)}</b>
         <span class="text-sm text-ink-muted">
@@ -98,7 +100,7 @@ function HeroOpen({ period, historic, history, mode, active, onPick }) {
   return (
     <button type="button" aria-pressed={active} onClick={onPick}
       class={cx('panel flex flex-col gap-2 px-6 pt-5 pb-3.5 text-left', active ? 'border-brand-text ring-3 ring-brand-soft' : '')}>
-      <span class="text-[13px] font-bold text-ink-muted">Open rate del periodo</span>
+      <span class="flex items-center gap-2 text-[13px] font-bold text-ink-muted"><MetricIcon metric="or" />Open rate del periodo</span>
       <span class="flex flex-wrap items-baseline gap-x-3.5 gap-y-1.5">
         <b class="text-[52px] leading-none font-extrabold tracking-tight">{fmtPct(value)}</b>
         <span class="text-sm text-ink-muted">promedio histórico <b class="text-ink">{fmtPct(hist)}</b></span>
@@ -130,7 +132,7 @@ function Kpi({ metricKey, period, history, mode, active, onPick }) {
   return (
     <button type="button" aria-pressed={active} onClick={onPick}
       class={cx('flex flex-col gap-2 rounded-2xl border bg-surface px-4 py-3.5 text-left', active ? 'border-brand-text ring-3 ring-brand-soft' : 'border-line hover:border-line-strong')}>
-      <span class="text-[12.5px] font-semibold text-ink-muted">{METRICS[metricKey].label}</span>
+      <span class="flex items-center gap-2 text-[12.5px] font-semibold text-ink-muted"><MetricIcon metric={metricKey} size="size-6" iconSize={14} />{METRICS[metricKey].label}</span>
       <span class="flex items-end justify-between gap-2">
         <b class="text-[26px] leading-none font-bold">{formatValue(metricKey, now)}</b>
         <Sparkline values={history.map(item => valueOf(item, metricKey, mode))} />
@@ -188,7 +190,9 @@ function FamiliesPanel({ families, mode }) {
           <tbody>
             {families.map(family => (
               <tr key={family.name} class="border-t border-line">
-                <th scope="row" class="py-2.5 pr-2 text-left font-semibold">{family.name}</th>
+                <th scope="row" class="py-2.5 pr-2 text-left font-semibold">
+                  <span class="flex items-center gap-2"><Icon name={familyIcon(family.name)} size={15} class="flex-none text-ink-muted" />{family.name}</span>
+                </th>
                 <td class="px-2 py-2.5 text-right">{fmtInt(family.comms)}</td>
                 <td class="px-2 py-2.5 text-right">{fmtPct(rateOf(family.deliv, mode))}</td>
                 <td class="px-2 py-2.5 text-right font-bold">{fmtPct(rateOf(family.or, mode))}</td>
@@ -269,7 +273,7 @@ export function GeneralView() {
   if (state.status === 'loading') return <div class="flex flex-col gap-4"><Skeleton class="h-12" /><div class="grid gap-4 md:grid-cols-2"><Skeleton class="h-56" /><Skeleton class="h-56" /></div><Skeleton class="h-80" /></div>;
   if (state.status === 'error') return <ErrorState text={state.error} onRetry={loadOverview} />;
   const data = state.data;
-  if (!data.total) return <EmptyState title="Todavía no hay envíos" text={messageText('NO_DATA')} />;
+  if (!data.total) return <EmptyState icon="sheet" title="Todavía no hay envíos" text={messageText('NO_DATA')} />;
   if (error) return <ErrorState text={error} onRetry={retry} />;
   if (!period) return <div class="flex flex-col gap-4"><Skeleton class="h-12" /><div class="grid gap-4 md:grid-cols-2"><Skeleton class="h-56" /><Skeleton class="h-56" /></div></div>;
   return (

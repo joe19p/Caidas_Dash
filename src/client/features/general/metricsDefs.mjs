@@ -12,6 +12,19 @@ export const METRICS = {
 
 export const SECONDARY = ['deliv', 'ctor', 'bounce', 'unsub'];
 
+/** Ícono (ui/Icon.jsx) y pastilla de cada indicador: el mismo en la vista general y en Resumen. */
+export const METRIC_ICONS = {
+  comms: ['mail', 'bg-brand-soft text-brand-text'],
+  audience: ['users', 'bg-brand-soft text-brand-text'],
+  drop: ['suppressed', 'bg-asl-soft text-asl-ink'],
+  sends: ['send', 'bg-brand-soft text-brand-text'],
+  deliv: ['inbox', 'bg-success-soft text-success'],
+  or: ['mailOpen', 'bg-brand-soft text-brand-text'],
+  ctor: ['click', 'bg-brand-soft text-brand-text'],
+  bounce: ['bounce', 'bg-danger-soft text-danger-ink'],
+  unsub: ['userMinus', 'bg-danger-soft text-danger-ink']
+};
+
 /** Valor de un resumen de tasa según cómo se promedia (com: mediana por comunicación; vol: ponderado). */
 export const rateOf = (summary, mode) => (summary ? (mode === 'vol' ? summary.vol : summary.com) : null);
 

@@ -197,7 +197,7 @@ export function CommunicationView() {
   const month = commMonth.value;
   const [state, retry] = useLoad(month && `${dataKey.value}|${month}`, () => api.getMonth(month));
   if (overview.value.status === 'loading') return <Skeleton class="h-96" />;
-  if (!months.length) return <EmptyState title="Todavía no hay envíos" text="Cuando la hoja tenga envíos, aquí se eligen por día." />;
+  if (!months.length) return <EmptyState icon="mail" title="Todavía no hay envíos" text="Cuando la hoja tenga envíos, aquí se eligen por día." />;
   if (state.status === 'error') return <ErrorState text={state.error} onRetry={retry} />;
   const data = state.data;
   const days = data?.days || {};
@@ -217,7 +217,7 @@ export function CommunicationView() {
         </> : <><Skeleton class="h-72" /><Skeleton class="h-96" /></>}
       </aside>
       <section class="flex min-w-0 flex-[999_1_640px] flex-col gap-4">
-        {job ? <Detail job={job} /> : data && <EmptyState title="Elige un día con envíos" text="Los días con un punto tienen comunicaciones." />}
+        {job ? <Detail job={job} /> : data && <EmptyState icon="calendar" title="Elige un día con envíos" text="Los días con un punto tienen comunicaciones." />}
       </section>
     </div>
   );

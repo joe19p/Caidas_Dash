@@ -9,6 +9,7 @@ import { dataKey, openCommunication } from '@/state/app.mjs';
 import { selected, unselect, clearSelected, openSearch } from '@/state/search.mjs';
 import { BreakableName } from '@/ui/BreakableName.jsx';
 import { Icon } from '@/ui/Icon.jsx';
+import { DESTINATION_ICONS, motiveIcon } from '@/lib/icons.mjs';
 import { Panel } from '@/ui/Panel.jsx';
 import { Skeleton, EmptyState, ErrorState } from '@/ui/States.jsx';
 
@@ -66,10 +67,11 @@ function Per100({ items, worst }) {
   return (
     <Panel boxed id="per100" title="De cada 100 personas" subtitle="Qué pasó con la audiencia de cada comunicación: cuánto se entregó y cuánto cayó, y por qué lado.">
       <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-muted">
-        <span class="flex items-center gap-1.5"><span class="size-2.5 rounded-[3px] bg-ent" />Entregados</span>
-        <span class="flex items-center gap-1.5"><span class="size-2.5 rounded-[3px] bg-reb" />Rebotes</span>
-        <span class="flex items-center gap-1.5"><span class="size-2.5 rounded-[3px] bg-blq" />Bloqueo preventivo (Marketing Cloud)</span>
-        <span class="flex items-center gap-1.5"><span class="size-2.5 rounded-[3px] bg-asl" />Autosupresión (CRM)</span>
+        {/* El ícono de cada destino, en el color de su tramo de la barra. */}
+        <span class="flex items-center gap-1.5"><Icon name={DESTINATION_ICONS.ent} size={14} class="text-ent" />Entregados</span>
+        <span class="flex items-center gap-1.5"><Icon name={DESTINATION_ICONS.reb} size={14} class="text-reb" />Rebotes</span>
+        <span class="flex items-center gap-1.5"><Icon name={DESTINATION_ICONS.blq} size={14} class="text-blq" />Bloqueo preventivo (Marketing Cloud)</span>
+        <span class="flex items-center gap-1.5"><Icon name={DESTINATION_ICONS.asl} size={14} class="text-asl" />Autosupresión (CRM)</span>
       </div>
       <ul class="flex flex-col gap-3">
         {items.map(item => {
@@ -156,7 +158,7 @@ function MotiveMatrix({ items, motives }) {
             <th scope="col" class="py-2 pr-3 text-left font-semibold">Comunicación</th>
             {columns.map(column => (
               <th key={column.key} scope="col" class="min-w-[76px] px-1 py-2 text-center align-bottom font-semibold">
-                {column.origin && <span class={cx('mr-1 inline-block size-2 rounded-[2px]', column.origin === 'blq' ? 'bg-blq' : 'bg-asl')} />}
+                {column.origin && <Icon name={motiveIcon(column.key, column.origin)} size={14} class={cx('mx-auto mb-1 block', column.origin === 'blq' ? 'text-blq' : 'text-asl')} />}
                 {column.name}
               </th>
             ))}
@@ -193,7 +195,7 @@ export function CompareView() {
   const [state, retry] = useLoad(jobs.length >= 2 ? `${dataKey.value}|${jobs.join(',')}` : '', () => api.getCompare(jobs), { keepPrevious: true });
   if (jobs.length < 2) {
     return (
-      <EmptyState title="Elige al menos dos comunicaciones"
+      <EmptyState icon="columns" title="Elige al menos dos comunicaciones"
         text="Búscalas en la barra de arriba (en el mes o en todos los meses) o márcalas en la lista del día, y vuelve aquí para verlas lado a lado.">
         <button type="button" class="btn-primary" onClick={openSearch}><Icon name="search" size={16} />Buscar comunicaciones</button>
       </EmptyState>

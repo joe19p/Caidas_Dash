@@ -96,17 +96,19 @@ export function StatusBar() {
       class="fixed inset-x-0 bottom-0 z-30 flex h-10 items-center gap-1.5 border-t border-line bg-surface/95 px-4 text-[13px] backdrop-blur max-sm:px-2">
       {isLocal() && <span class="flex-none rounded-full bg-warning-soft px-2.5 py-0.5 text-xs font-bold text-warning-ink max-md:hidden">Datos de ejemplo</span>}
       {data && (
-        <span class="truncate text-ink-muted max-lg:hidden">
-          <b class="text-ink">{fmtInt(data.total)}</b> envíos en la hoja{months.length ? `, de ${monthShort(months[months.length - 1])} a ${monthShort(months[0])}` : ''}
+        <span class="flex min-w-0 items-center gap-1.5 truncate text-ink-muted max-lg:hidden">
+          <Icon name="sheet" size={14} class="flex-none" />
+          <span class="truncate"><b class="text-ink">{fmtInt(data.total)}</b> envíos en la hoja{months.length ? `, de ${monthShort(months[months.length - 1])} a ${monthShort(months[0])}` : ''}</span>
         </span>
       )}
       {viewing && <>
         <span class="mx-1 h-4 w-px flex-none bg-line max-lg:hidden" aria-hidden="true" />
-        <span class="truncate text-ink-muted max-md:hidden">{viewing}</span>
+        <span class="flex min-w-0 items-center gap-1.5 truncate text-ink-muted max-md:hidden"><Icon name="calendar" size={14} class="flex-none" /><span class="truncate">{viewing}</span></span>
       </>}
       <span class="flex-1" />
       <span role="status" aria-live="polite" title={status.title} class={cx('flex min-w-0 items-center gap-1.5 truncate', TONES[status.tone])}>
-        {!status.busy && <span class={cx('size-2 flex-none rounded-full', status.tone === 'ok' ? 'bg-success' : status.tone === 'bad' ? 'bg-danger' : status.tone === 'warn' ? 'bg-warning' : 'bg-ink-muted')} aria-hidden="true" />}
+        {/* Al día: la hora de lectura (reloj); con aviso o error: atención. */}
+        {!status.busy && <Icon name={status.tone === 'ok' ? 'clock' : status.tone === 'muted' ? 'info' : 'alert'} size={14} class="flex-none" />}
         <span class="truncate">{status.text}</span>
       </span>
       <button type="button" class={ACTION} onClick={refreshOverview} disabled={refreshing.value} title="Volver a leer la hoja">

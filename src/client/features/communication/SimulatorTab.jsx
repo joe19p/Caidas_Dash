@@ -6,6 +6,7 @@ import { cx, fmtInt, fmtPct, fmtPts } from '@/lib/format.mjs';
 import { Icon } from '@/ui/Icon.jsx';
 import { simLists, simulate, simRisk } from '@shared/simulator.mjs';
 import { metricFold } from '@shared/metrics.mjs';
+import { motiveIcon } from '@/lib/icons.mjs';
 
 function Switch({ checked, label, onToggle }) {
   return (
@@ -118,7 +119,9 @@ function ListTable({ lists, off, onToggle }) {
                       : <Switch checked={!offNow} label={`${offNow ? 'Aplicar' : 'Dejar de aplicar'} ${list.name}`} onToggle={() => onToggle(list.code)} />}
                   </td>
                   <td class="px-2.5 py-2">
-                    <span class={cx('block text-[13px] font-semibold', list.lock ? 'text-ink-muted' : 'text-ink')} title={list.code}>{list.name}</span>
+                    <span class={cx('flex items-center gap-2 text-[13px] font-semibold', list.lock ? 'text-ink-muted' : 'text-ink')} title={list.code}>
+                      <Icon name={motiveIcon(list.code, 'asl')} size={15} class={cx('flex-none', list.lock ? 'text-ink-muted' : 'text-asl')} />{list.name}
+                    </span>
                     <span class="block text-[11.5px] text-ink-muted">{list.lock || `Excluye el ${fmtPct(list.share)} de lo no enviado`}</span>
                   </td>
                   <td class={cx('px-2.5 py-2 text-right font-semibold', list.lock ? 'text-ink-muted' : 'text-ink')}>{fmtInt(list.count)}</td>

@@ -23,7 +23,7 @@ const COMPARE_MIN = 2;
 
 function Header() {
   const count = selected.value.length;
-  const tabs = [['general', 'Vista general'], ['comm', 'Por comunicación'], ['compare', 'Comparar']]
+  const tabs = [['general', 'Vista general', 'dashboard'], ['comm', 'Por comunicación', 'mail'], ['compare', 'Comparar', 'columns']]
     .filter(([id]) => id !== 'compare' || count >= COMPARE_MIN || view.value === 'compare');
   // La barra queda fija arriba; su alto (cambia al pasar de línea en pantallas angostas) va en --header-h para que lo
   // que también queda fijo (la columna de «Por comunicación») se ubique debajo y no quede tapado.
@@ -43,11 +43,11 @@ function Header() {
       {/* A todo el ancho de la pantalla (sin tope): vistas y periodo a la izquierda; buscador y cuenta a la derecha. */}
       <div class="flex flex-wrap items-center gap-x-4 gap-y-3 px-6 py-2.5 max-sm:px-4">
         <nav aria-label="Vistas" class="inline-flex h-9 overflow-hidden rounded-xl border border-white/25">
-          {tabs.map(([id, label]) => (
+          {tabs.map(([id, label, icon]) => (
             <button key={id} type="button" aria-current={view.value === id ? 'page' : undefined} onClick={() => openView(id)}
               class={cx('inline-flex items-center gap-1.5 px-3.5 text-sm whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-white max-sm:px-2 max-sm:text-[13px]',
                 view.value === id ? 'bg-white/15 font-bold text-white' : 'font-semibold text-white/80 hover:bg-white/10')}>
-              {label}
+              <Icon name={icon} size={16} class="flex-none max-sm:hidden" />{label}
               {id === 'compare' && count > 0 && (
                 <span class="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-white px-1.5 text-[11.5px] font-extrabold text-chrome" aria-label={`${count} elegidas`}>{count}</span>
               )}

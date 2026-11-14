@@ -38,6 +38,9 @@ Funcionalidades en `docs/FUNCIONALIDADES.md`.
 - **Sin muletillas de plantilla:** nada de rótulos en mayúsculas sobre los títulos, ni textos unidos con «·», ni «→»
   al final de enlaces o botones. Se escribe en frases: «ago 26 – oct 26, comparado con…», «Ver las reglas».
 - **Mensajes:** errores y avisos con códigos de `src/shared/messages.mjs`.
+- **Íconos solo del catálogo** (`ui/Icon.jsx`, trazo 24×24): uno nuevo se agrega ahí. Motivos (por tipo de regla),
+  familias y destinos eligen el suyo en `lib/icons.mjs`; los indicadores, en `METRIC_ICONS` (`metricsDefs.mjs`). El
+  ícono acompaña al texto, con el color de su texto o de su destino; en gráficos, solo en leyendas y etiquetas.
 - **Controles propios, nunca nativos:** `ui/Segmented.jsx`, interruptores con `role="switch"`, calendario propio.
 - Comentarios en español, con la densidad del archivo vecino. Alias: `@/` = `src/client`, `@shared/` = `src/shared`,
   `@local/` = `src/local`.
