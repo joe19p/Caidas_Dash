@@ -12,8 +12,10 @@ export function SelectionTray() {
   if (!items.length || view.value === 'compare') return null;
   return (
     <section aria-label="Comunicaciones elegidas"
-      class="fixed bottom-4 left-1/2 z-30 flex w-max max-w-[calc(100vw-2rem)] -translate-x-1/2 flex-wrap items-center gap-x-3.5 gap-y-2 rounded-card border border-line bg-surface py-2.5 pr-2.5 pl-4 text-ink shadow-float">
+      class="fixed bottom-14 left-1/2 z-30 flex w-max max-w-[calc(100vw-2rem)] -translate-x-1/2 flex-wrap items-center gap-x-3.5 gap-y-2 rounded-card border border-line bg-surface py-2.5 pr-2.5 pl-4 text-ink shadow-float">
       <b class="text-sm">{items.length} {items.length === 1 ? 'elegida' : 'elegidas'}</b>
+      {/* La pestaña Comparar aparece desde 2: con una, se dice qué falta. */}
+      {items.length === 1 && <span class="text-[13px] text-ink-muted">Elige otra para comparar</span>}
       <ul class="flex flex-wrap gap-1.5 max-sm:hidden">
         {items.slice(0, SHOWN).map(item => (
           <li key={item.job} class="inline-flex items-center gap-0.5 rounded-full bg-brand-soft py-0.5 pr-1 pl-2.5 text-xs font-semibold" title={item.name}>

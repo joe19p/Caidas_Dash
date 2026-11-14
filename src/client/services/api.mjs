@@ -25,6 +25,8 @@ const month = (call, value) => remembered(`month:${value}`, () => cached(`month:
 export const api = {
   getOverview: () => callServer('getOverview'),
   getCacheKey: () => callServerQuietly('getCacheKey'),
+  /** Quién usa la app y en qué entorno (sin barra de carga). */
+  getServerInfo: () => callServerQuietly('getServerInfo'),
   /** Un periodo a elección (los que terminan en el mes en curso ya vienen en la vista general). */
   getPeriod: (from, to) => remembered(`period:${from}:${to}`, () => cached(`period:${from}:${to}`, () => callServer('getPeriod', from, to))),
   /** Búsqueda en todos los meses (palabras separadas por coma; 'O' alguna, 'Y' todas). */

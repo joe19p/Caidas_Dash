@@ -169,7 +169,7 @@ export function SearchBox() {
     openCommunication({ day: item.start.slice(0, 10), job: item.job });
   };
   return (
-    <div ref={root} role="search" class="relative min-w-0 flex-[1_1_300px] sm:max-w-[440px]">
+    <div ref={root} role="search" class="relative min-w-0 flex-[1_1_240px] sm:max-w-[720px]">
       <div class="flex h-9 items-center gap-1.5 rounded-xl bg-white/10 pr-1 pl-2.5 ring-1 ring-white/50 ring-inset focus-within:bg-white/15 focus-within:ring-white"
         onClick={() => { searchOpen.value = true; input.current?.focus(); }}>
         <Icon name="search" size={16} class="flex-none text-white/85" />

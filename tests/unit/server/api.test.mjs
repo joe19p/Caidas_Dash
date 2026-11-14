@@ -108,6 +108,7 @@ test('la vista general lleva la clave de los datos para el navegador, y cambia a
   const key = context.getCacheKey();
   assert.match(key, /^s\d+:v\d+:\d{4}-\d{2}-\d{2}$/);
   assert.equal(context.getOverview().cacheKey, key);
+  assert.match(context.getOverview().readAt, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/, 'Lleva la hora en que se leyó la hoja.');
   const refreshed = context.refreshData();
   assert.notEqual(refreshed.cacheKey, key);
   assert.equal(context.getCacheKey(), refreshed.cacheKey);

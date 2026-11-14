@@ -96,7 +96,7 @@ function CommList({ items, day, q, job }) {
     .sort((a, b) => b.base - a.base);
   const total = items.filter(item => item.start.slice(0, 10) === day).length;
   return (
-    <section class="panel flex flex-col overflow-hidden xl:min-h-0">
+    <section class="panel flex flex-col overflow-hidden xl:min-h-0 xl:flex-1">
       <div class="flex flex-col gap-2.5 px-4 pt-3.5 pb-2.5">
         <span class="flex items-center gap-2 text-[13px] font-bold">
           <span class="inline-flex size-5 items-center justify-center rounded-full bg-brand text-[11.5px] text-white">2</span>
@@ -109,14 +109,15 @@ function CommList({ items, day, q, job }) {
             autocomplete="off" class="field h-[38px] pl-8" />
         </label>
       </div>
-      <ul aria-label="Comunicaciones del día" class="flex max-h-[560px] flex-col gap-0.5 overflow-y-auto px-2 pb-2 xl:max-h-none xl:min-h-0">
+      {/* Misma sangría que el buscador (px-4): la fila elegida no sobresale ni toca el borde de la tarjeta. */}
+      <ul aria-label="Comunicaciones del día" class="flex max-h-[560px] flex-col gap-0.5 overflow-y-auto px-4 pt-0.5 pb-3 xl:max-h-none xl:min-h-0 xl:flex-1">
         {list.map(item => {
           const on = item.job === job;
           const base = item.base || 1;
           const chosen = selectedJobs.value.has(item.job);
           return (
             // La casilla va fuera del botón de la fila: elige para comparar sin abrir la comunicación.
-            <li key={item.job} class={cx('flex items-start gap-2 rounded-[10px] pl-2.5', on ? 'bg-brand-soft ring-1 ring-brand-text' : 'hover:bg-surface-muted')}>
+            <li key={item.job} class={cx('flex items-start gap-2 rounded-[10px] pl-2.5', on ? 'bg-brand-soft ring-1 ring-brand-text ring-inset' : 'hover:bg-surface-muted')}>
               <Checkbox class="mt-[11px]" checked={chosen} onChange={() => toggleSelected(item)}
                 disabled={!chosen && selectedJobs.value.size >= SELECTION_MAX}
                 label={chosen ? `Quitar ${item.name} de las elegidas` : `Elegir ${item.name} para comparar`} />
@@ -206,9 +207,10 @@ export function CommunicationView() {
   const job = current.job && ofDay.some(item => item.job === current.job) ? current.job : ofDay[0]?.job || '';
   return (
     <div class="flex flex-wrap items-start gap-4">
-      {/* En pantallas anchas (lado a lado) la columna queda fija al hacer scroll y ocupa hasta el alto de la pantalla: el
-          calendario mantiene su tamaño y la lista se recorre por dentro. Apilado (pantallas angostas), no se fija. */}
-      <aside aria-label="Elegir comunicación" class="flex min-w-0 max-w-[380px] flex-[1_1_340px] flex-col gap-3 xl:sticky xl:top-4 xl:max-h-[calc(100vh-2rem)]">
+      {/* En pantallas anchas (lado a lado) la columna queda fija al hacer scroll, entre la barra azul (--header-h) y la de estado (40 px), y ocupa ese alto: el
+          calendario mantiene su tamaño y la tarjeta de la lista llega hasta el fondo (la lista se recorre por dentro).
+          Apilado (pantallas angostas), no se fija. */}
+      <aside aria-label="Elegir comunicación" class="flex min-w-0 max-w-[380px] flex-[1_1_340px] flex-col gap-3 xl:sticky xl:top-[calc(var(--header-h,0px)+1rem)] xl:h-[calc(100vh-var(--header-h,0px)-2rem-40px)]">
         {data ? <>
           <DayPicker month={month} days={days} day={day} />
           <CommList items={data.items} day={day} q={current.q} job={job} />

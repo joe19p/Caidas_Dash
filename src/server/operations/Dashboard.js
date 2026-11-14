@@ -10,6 +10,8 @@ function overviewData_() {
     const overview = buildOverview(records, motiveInfoFn_(motiveCatalog_()), isoDate_());
     overview.available = metricAvailable(records);
     overview.cacheKey = clientCacheKey_();
+    // Cuándo se leyó la hoja (lo calculado queda en caché): la barra de estado lo muestra.
+    overview.readAt = isoDateTime_();
     return overview;
   });
 }

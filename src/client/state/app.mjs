@@ -10,8 +10,36 @@ export const view = signal('general');
 export const overview = signal({ status: 'loading', data: null, error: '', stale: false });
 /** Clave de los datos vigente: entra en la clave de cada carga, así «Actualizar datos» vuelve a pedir lo abierto. */
 export const dataKey = computed(() => overview.value.data?.cacheKey || '');
-/** Aviso corto abajo (actualizar, errores): { text, level } o null. */
+/** Aviso corto abajo (actualizar, errores): { text, level } o null. Cada aviso queda también en la actividad. */
 export const notice = signal(null);
+
+/** Actividad de esta sesión (barra de estado): { id, level, text, at }, la más reciente primero. */
+export const activity = signal([]);
+/** Cuántas entradas llegaron sin que se viera la actividad. */
+export const unseenActivity = signal(0);
+export const activityOpen = signal(false);
+/** «Actualizar datos» en curso. */
+export const refreshing = signal(false);
+/** La hoja cambió después de cargar los datos (se revisa cada pocos minutos): hay que actualizar para verlo. */
+export const sheetChanged = signal(false);
+/** Correo de quien usa la app (viene con la página; en desarrollo, del backend local). */
+export const userEmail = signal(String(globalThis.APP_BOOT?.email || ''));
+
+const ACTIVITY_MAX = 50;
+let activityId = 0;
+/** Anota algo en la actividad. quiet: no suma a «sin ver» (lo que pasa solo, como la carga inicial). */
+export function logActivity(text, level = 'info', { quiet = false } = {}) {
+  activityId += 1;
+  activity.value = [{ id: activityId, level, text, at: new Date() }, ...activity.value].slice(0, ACTIVITY_MAX);
+  if (!quiet && !activityOpen.value) unseenActivity.value += 1;
+}
+
+export function markActivitySeen() {
+  unseenActivity.value = 0;
+}
+
+/** Hora «10:42» de un ISO con zona («2026-11-14T10:42:05-05:00»), tal como la dio el servidor (hora de Lima). */
+export const clockOf = iso => String(iso || '').slice(11, 16);
 
 /** Lo elegido en «Por comunicación»: mes, día, búsqueda, envío y pestaña (la pestaña se recuerda entre visitas). */
 export const pick = signal({ month: '', day: '', q: '', job: '', tab: readStored('tab', 'funnel') });
@@ -26,6 +54,8 @@ removeStored('overview_v1');
 /** Vista general recién llegada del servidor: se muestra, se guarda y se precarga el mes más reciente. */
 function setOverview(data) {
   overview.value = { status: 'ready', data, error: '', stale: false };
+  sheetChanged.value = false;
+  watchSheet();
   localCache.setDataKey(data.cacheKey).then(() => localCache.put(CACHED_OVERVIEW, data));
   prefetchLatestMonth(data);
 }
@@ -47,6 +77,7 @@ function prefetchLatestMonth(data) {
  * servidor (si la clave de los datos no cambió, no hace falta pedir la vista general otra vez).
  */
 export async function loadOverview() {
+  if (!userEmail.value) api.getServerInfo().then(info => { userEmail.value = info.email || ''; }).catch(() => {});
   const boot = globalThis.APP_BOOT?.overview;
   if (boot) {
     setOverview(boot);
@@ -61,6 +92,7 @@ export async function loadOverview() {
       // Vigente: no se vuelve a dibujar ni a guardar; solo se fija la clave para leer meses y comunicaciones.
       await localCache.setDataKey(key);
       prefetchLatestMonth(stored.data);
+      watchSheet();
       return;
     }
     // Cambió (o no se pudo confirmar): el aviso sale solo mientras llega lo nuevo.
@@ -77,15 +109,39 @@ export async function loadOverview() {
 }
 
 export function refreshOverview() {
+  if (refreshing.value) return Promise.resolve();
+  refreshing.value = true;
   return api.refreshData().then(data => {
     setOverview(data);
     showNotice(messageText('DATA_REFRESHED'), 'success');
-  }).catch(error => showNotice(error.text || messageText('SCREEN_FAILED'), 'error'));
+  }).catch(error => showNotice(error.text || messageText('SCREEN_FAILED'), 'error'))
+    .finally(() => { refreshing.value = false; });
+}
+
+// Cada cuánto se pregunta si la hoja cambió (solo la clave de los datos: es liviano) y solo con la pestaña a la vista.
+const WATCH_MS = 2 * 60 * 1000;
+let watching = false;
+/** Versión de los datos de una clave «s4:v12:2026-11-14» (sin el día: cambiar de día no es un cambio de la hoja). */
+const versionOf = key => String(key || '').split(':').slice(0, 2).join(':');
+function watchSheet() {
+  if (watching) return;
+  watching = true;
+  setInterval(() => {
+    if (sheetChanged.value || refreshing.value || globalThis.document?.visibilityState === 'hidden') return;
+    const current = dataKey.value;
+    api.getCacheKey().then(key => {
+      if (key && current && versionOf(key) !== versionOf(current) && !sheetChanged.value) {
+        sheetChanged.value = true;
+        logActivity(messageText('SHEET_CHANGED'), 'warning');
+      }
+    }).catch(() => {});
+  }, WATCH_MS);
 }
 
 let noticeTimer = null;
 export function showNotice(text, level = 'success') {
   notice.value = { text, level };
+  logActivity(text, level);
   clearTimeout(noticeTimer);
   noticeTimer = setTimeout(() => { notice.value = null; }, 5000);
 }

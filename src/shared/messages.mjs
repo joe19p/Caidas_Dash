@@ -10,6 +10,7 @@ const MESSAGE_CATALOG = Object.freeze({
   "MONTH_INVALID": { "text": "El mes no es válido.", "level": "error" },
   "COMPARE_INVALID": { "text": "Elige entre 2 y {max} comunicaciones para comparar.", "level": "error" },
   "COMMUNICATION_NOT_FOUND": { "text": "Esa comunicación ya no está en la hoja. Recarga la página.", "level": "error" },
+  "SHEET_CHANGED": { "text": "La hoja cambió después de cargar los datos. Pulsa Actualizar para verlo.", "level": "warning" },
   "DATA_REFRESHED": { "text": "Datos actualizados desde la hoja.", "level": "success" },
   "SCRIPT_RUN_UNAVAILABLE": { "text": "No hay conexión con el servidor de Apps Script.", "level": "error" },
   "SCREEN_FAILED": { "text": "No se pudieron cargar los datos. Toca «Reintentar»; si se repite, avisa a quien administra la app.", "level": "error" },
