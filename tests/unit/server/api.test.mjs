@@ -114,6 +114,33 @@ test('la vista general lleva la clave de los datos para el navegador, y cambia a
   assert.equal(context.getCacheKey(), refreshed.cacheKey);
 });
 
+test('la hoja se lee una vez por versión: cambiar de día recalcula sin volver a leerla', () => {
+  const fake = sheet([send({ job: 1, start: '10/5/2026 9:00:00 AM' }), send({ job: 2, start: '9/5/2026 9:00:00 AM' })]);
+  const { context } = loadGas({ spreadsheet: fake });
+  const reads = () => fake.store.readsBy?.EmailSummary_NotSent || 0;
+  const today = context.getOverview();
+  const afterFirst = reads();
+  assert.equal(afterFirst, 1);
+  // Día siguiente: otra clave para la vista general (se recalcula), pero los registros salen de la caché.
+  const RealDate = Date;
+  const tomorrow = RealDate.now() + 864e5;
+  context.Date = class extends RealDate {
+    constructor(...args) { super(...(args.length ? args : [tomorrow])); }
+    static now() { return tomorrow; }
+  };
+  const next = context.getOverview();
+  assert.notEqual(next.cacheKey, today.cacheKey);
+  assert.equal(reads(), afterFirst, 'No se vuelve a leer la hoja principal.');
+  // Un periodo cerrado y un mes tampoco la leen.
+  context.getPeriod('2026-09', '2026-10');
+  context.getMonth('2026-10');
+  assert.equal(reads(), afterFirst);
+  // Si la hoja cambia (nueva versión), sí.
+  context.onDataChange();
+  context.getOverview();
+  assert.equal(reads(), afterFirst + 1);
+});
+
 test('doGet incluye la vista general en la página', () => {
   const { context } = loadGas({ spreadsheet: sheet([send({ job: 1 })]) });
   const output = context.doGet();

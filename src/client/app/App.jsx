@@ -2,7 +2,9 @@
 // grupo de cuenta (avisos y usuario); abajo, la barra de estado (datos, Actualizar y Actividad) y, sobre ella, la
 // bandeja de comunicaciones elegidas.
 import { useEffect, useLayoutEffect, useRef } from 'preact/hooks';
-import { view, notice, loadOverview } from '@/state/app.mjs';
+import { view, notice, loadOverview, dismissNotice } from '@/state/app.mjs';
+import { Icon } from '@/ui/Icon.jsx';
+import { TooltipLayer } from '@/ui/TooltipLayer.jsx';
 import { waitingCalls } from '@/services/transport.mjs';
 import { cx } from '@/lib/format.mjs';
 import { GeneralView } from '@/features/general/GeneralView.jsx';
@@ -38,7 +40,7 @@ function Header() {
   return (
     // Fija desde 640 px: en un celular ocupa varias filas y fija se comería buena parte de la pantalla.
     <header ref={bar} class="z-30 bg-chrome text-white shadow-[0_1px_0_var(--color-line)] sm:sticky sm:top-0">
-      {/* A todo el ancho de la pantalla (sin tope): el buscador toma el espacio libre. */}
+      {/* A todo el ancho de la pantalla (sin tope): vistas y periodo a la izquierda; buscador y cuenta a la derecha. */}
       <div class="flex flex-wrap items-center gap-x-4 gap-y-3 px-6 py-2.5 max-sm:px-4">
         <nav aria-label="Vistas" class="inline-flex h-9 overflow-hidden rounded-xl border border-white/25">
           {tabs.map(([id, label]) => (
@@ -53,8 +55,9 @@ function Header() {
           ))}
         </nav>
         {view.value !== 'compare' && <PeriodNav />}
-        <SearchBox />
         <span class="flex-1" />
+        {/* A la derecha, junto a la cuenta. */}
+        <SearchBox />
         <AccountCluster />
       </div>
       {waitingCalls.value > 0 && <div class="h-0.5 w-full animate-pulse bg-white/60" aria-hidden="true" />}
@@ -62,15 +65,24 @@ function Header() {
   );
 }
 
+const TONES = {
+  success: 'bg-success-soft text-success', info: 'bg-brand-soft text-brand-text',
+  warning: 'bg-warning-soft text-warning-ink', error: 'bg-danger-soft text-danger-ink'
+};
+const ICONS = { success: 'check', info: 'info', warning: 'alert', error: 'alert' };
+
 function Notice() {
   const value = notice.value;
   if (!value) return null;
   // Sobre la barra de estado y, si está a la vista, sobre la bandeja de elegidas.
   const lifted = selected.value.length > 0 && view.value !== 'compare';
-  const tone = value.level === 'error' ? 'bg-danger-soft text-danger-ink' : value.level === 'warning' ? 'bg-warning-soft text-warning-ink' : 'bg-success-soft text-success';
+  const tone = TONES[value.level] || TONES.success;
   return (
-    <div role="status" class={cx('fixed left-1/2 z-50 -translate-x-1/2 rounded-xl px-4 py-2.5 text-sm font-semibold shadow-float', lifted ? 'bottom-32' : 'bottom-14', tone)}>
+    <div role="status" aria-live="polite" class={cx('fixed left-1/2 z-50 flex -translate-x-1/2 items-center gap-2.5 rounded-xl px-4 py-2.5 text-sm font-semibold shadow-float', lifted ? 'bottom-32' : 'bottom-14', tone)}>
+      {/* De carga: ícono girando; los demás, el de su tipo. */}
+      <Icon name={value.busy ? 'refresh' : ICONS[value.level] || 'check'} size={16} class={cx('flex-none', value.busy && 'animate-spin')} />
       {value.text}
+      {!value.busy && <button type="button" class="-mr-1.5 rounded-md p-1 opacity-70 hover:opacity-100" aria-label="Cerrar el aviso" onClick={dismissNotice}><Icon name="close" size={14} /></button>}
     </div>
   );
 }
@@ -87,6 +99,7 @@ export function App() {
       <SelectionTray />
       <Notice />
       <StatusBar />
+      <TooltipLayer />
     </div>
   );
 }

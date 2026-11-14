@@ -32,8 +32,22 @@ function motiveInfoFn_(catalog) {
   return code => sfmcMotiveInfo(code, catalog);
 }
 
-/** Todos los envíos, ordenados por fecha de inicio. */
+let recordsMemo_ = null;
+
+/**
+ * Todos los envíos, ordenados por fecha de inicio. La hoja se lee una vez por versión de los datos: los registros
+ * quedan en caché (comprimidos) y los demás cálculos (otro día, otro periodo, otro mes) salen de esa copia.
+ */
 function loadRecords_() {
+  const version = dataVersion_();
+  if (recordsMemo_ && recordsMemo_.version === version) return recordsMemo_.records;
+  const records = cachedJson_(`records:v${version}`, readRecords_, { compress: true });
+  recordsMemo_ = { version, records };
+  return records;
+}
+
+/** Lee la hoja y arma los registros (lo caro: solo cuando cambió la versión de los datos). */
+function readRecords_() {
   const main = readTable_(SHEETS.SUMMARY_NOT_SENT, true);
   const motiveHeaders = sfmcMotiveHeaders(main.keys);
   const byJob = {};

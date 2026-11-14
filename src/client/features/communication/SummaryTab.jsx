@@ -13,11 +13,11 @@ const GROUPS = [
   ['asl', 'Autosupresión', 'bg-asl']
 ];
 
-function Kpi({ label, value, delta, better, note }) {
+function Kpi({ label, value, delta, better, note, order = 0 }) {
   const tone = delta == null ? 'text-ink-muted' : deltaTone(delta, better);
   const text = delta == null ? note : Math.abs(delta) < 0.0005 ? 'Igual a lo normal' : `${delta > 0 ? '▲' : '▼'} ${fmtPts(Math.abs(delta)).replace('+', '')} vs lo normal`;
   return (
-    <div class="flex flex-col gap-1.5 border-l-2 border-line-strong py-1 pl-3.5">
+    <div class="anim-rise flex flex-col gap-1.5 border-l-2 border-line-strong py-1 pl-3.5" style={{ '--delay': `${order * 60}ms` }}>
       <span class="text-[12.5px] font-semibold text-ink-muted">{label}</span>
       <b class="text-[22px] leading-none font-bold">{value}</b>
       <span class={cx('text-xs font-semibold', tone)}>{text}</span>
@@ -42,7 +42,8 @@ function Waffle({ detail }) {
           onMouseLeave={() => setFocus(null)}
           class="grid flex-none grid-cols-[repeat(10,24px)] gap-1.5">
           {cells.map(([key, color], index) => (
-            <span key={index} data-group={key} class={cx('size-6 rounded-md transition-opacity duration-150', color, focus && focus !== key && 'opacity-20')} />
+            <span key={index} data-group={key} style={{ '--delay': `${200 + index * 7}ms` }}
+              class={cx('anim-pop size-6 rounded-md transition-opacity duration-150', color, focus && focus !== key && 'opacity-20')} />
           ))}
         </div>
         <div role="table" aria-label="Destino de la audiencia de esta comunicación" class="flex min-w-0 flex-[1_1_420px] flex-col text-[13px]">
@@ -79,7 +80,7 @@ function Motives({ detail, onAll }) {
       actions={detail.motives.length > 8 && <button type="button" onClick={onAll} class="text-[13px] font-semibold text-brand-text hover:underline">Ver los {detail.motives.length} motivos</button>}>
       {top.length ? (
         <div class="flex flex-col gap-2.5">
-          {top.map(motive => {
+          {top.map((motive, index) => {
             const diff = motive.share - motive.normal;
             return (
               <div key={motive.code} class="grid grid-cols-[minmax(0,1fr)_56px_76px] items-center gap-x-2.5 gap-y-1">
@@ -87,7 +88,8 @@ function Motives({ detail, onAll }) {
                 <b class="text-right text-[13px]">{fmtPct(motive.share)}</b>
                 <span class={cx('text-right text-xs font-semibold', Math.abs(diff) < 0.01 ? 'text-ink-muted' : diff > 0 ? 'text-danger' : 'text-success')}>{fmtPts(diff)}</span>
                 <span class="relative h-2 rounded bg-surface-muted">
-                  <span class={cx('absolute inset-y-0 left-0 rounded', motive.origin === 'blq' ? 'bg-blq' : 'bg-asl')} style={{ width: `${(motive.share / scale) * 100}%` }} />
+                  <span class={cx('anim-grow-x absolute inset-y-0 left-0 rounded', motive.origin === 'blq' ? 'bg-blq' : 'bg-asl')}
+                    style={{ width: `${(motive.share / scale) * 100}%`, '--delay': `${300 + index * 70}ms` }} />
                   <span title="Lo normal" class="absolute -inset-y-[3px] w-0.5 rounded-sm bg-ink" style={{ left: `${(motive.normal / scale) * 100}%` }} />
                 </span>
                 <span class="col-span-2 text-right text-xs text-ink-muted">{fmtInt(motive.count)}</span>
@@ -125,12 +127,12 @@ export function SummaryTab({ detail, onAllMotives }) {
     <div class="@container flex flex-col gap-4">
       {/* 6, 3 o 2 por fila según el ancho del bloque: nunca uno solo en la última fila. */}
       <div class="grid grid-cols-2 gap-x-2.5 gap-y-4 @lg:grid-cols-3 @4xl:grid-cols-6">
-        <Kpi label="Audiencia" value={fmtInt(record.base)} note="Base antes de exclusiones" />
-        <Kpi label="No enviados" value={fmtPct(rates.drop)} delta={diff('drop')} better="down" />
-        <Kpi label="Enviados" value={fmtInt(record.sends)} note={`${fmtPct(record.base ? record.sends / record.base : null)} de la audiencia`} />
-        <Kpi label="Entrega" value={fmtPct(rates.deliv)} delta={diff('deliv')} better="up" />
-        <Kpi label="Apertura" value={fmtPct(rates.or)} delta={diff('or')} better="up" />
-        <Kpi label="CTOR" value={fmtPct(rates.ctor)} delta={diff('ctor')} better="up" />
+        <Kpi order={0} label="Audiencia" value={fmtInt(record.base)} note="Base antes de exclusiones" />
+        <Kpi order={1} label="No enviados" value={fmtPct(rates.drop)} delta={diff('drop')} better="down" />
+        <Kpi order={2} label="Enviados" value={fmtInt(record.sends)} note={`${fmtPct(record.base ? record.sends / record.base : null)} de la audiencia`} />
+        <Kpi order={3} label="Entrega" value={fmtPct(rates.deliv)} delta={diff('deliv')} better="up" />
+        <Kpi order={4} label="Apertura" value={fmtPct(rates.or)} delta={diff('or')} better="up" />
+        <Kpi order={5} label="CTOR" value={fmtPct(rates.ctor)} delta={diff('ctor')} better="up" />
       </div>
       <Waffle detail={detail} />
       <div class="grid grid-cols-[repeat(auto-fit,minmax(min(380px,100%),1fr))] items-start gap-4">
@@ -143,7 +145,7 @@ export function SummaryTab({ detail, onAllMotives }) {
               <Row label="Rebotes" strong swatch="bg-reb" value={fmtInt(record.bounces)} note={`${fmtPct(rates.bounce, 2)} de enviados`} />
             </div>
             <span class="border-t border-line pt-1.5 text-xs font-semibold text-ink-muted">Tipo de rebote</span>
-            <div class="flex h-3 gap-0.5" aria-hidden="true">
+            <div class="anim-grow-x flex h-3 gap-0.5" style={{ '--delay': '400ms' }} aria-hidden="true">
               {bounceParts.map(([name, value], index) => (
                 <span key={name} class={cx('bg-reb', index === 0 ? 'rounded-l' : '', index === 2 ? 'flex-1 rounded-r opacity-30' : index === 1 ? 'opacity-60' : '')}
                   style={index < 2 ? { width: `${record.bounces ? (value / record.bounces) * 100 : 0}%` } : undefined} />

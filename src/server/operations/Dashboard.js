@@ -25,7 +25,10 @@ function periodData_(from, to) {
   const valid = month.test(String(from || '')) && month.test(String(to || '')) && from <= to && to <= current
     && metricMonthRange(from, to).length <= PERIOD_MAX_MONTHS;
   assert_(valid, 'PERIOD_INVALID');
-  return cachedJson_(`period:v${dataVersion_()}:${isoDate_()}:${from}:${to}`, () =>
+  // Un periodo cerrado depende del mes en curso (historial y series), no del día: así sirve todo el mes. Si llega al
+  // mes en curso, también del día (se corta hoy).
+  const scope = to === current ? isoDate_() : current;
+  return cachedJson_(`period:v${dataVersion_()}:${scope}:${from}:${to}`, () =>
     buildPeriod(loadRecords_(), motiveInfoFn_(motiveCatalog_()), from, to, isoDate_()));
 }
 

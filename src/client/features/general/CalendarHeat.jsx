@@ -57,7 +57,7 @@ export function CalendarHeat({ calendar }) {
   const text = value => (value == null ? '' : metric === 'comms' ? String(value) : (value * 100).toFixed(1));
   const info = calendar.days[chosen];
   return (
-    <section aria-labelledby="cal-t" class="section-rule gap-3.5">
+    <section aria-labelledby="cal-t" class="panel flex flex-col gap-3.5 p-4">
       <div class="flex flex-wrap items-start justify-between gap-2.5">
         <div>
           <h2 id="cal-t" class="text-base font-bold">Calendario de envíos: {monthRange(calendar.from, calendar.to)}</h2>

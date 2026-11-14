@@ -4,6 +4,7 @@ import { api } from '@/services/api.mjs';
 import { localCache } from '@/services/localCache.mjs';
 import { readStored, removeStored, writeStored } from '@/services/storage.mjs';
 import { messageText } from '@shared/messages.mjs';
+import { dayLong } from '@/lib/format.mjs';
 
 export const view = signal('general');
 /** Vista general: { status: 'loading' | 'ready' | 'error', data, error, stale }. stale = lo guardado mientras llega lo nuevo. */
@@ -76,11 +77,24 @@ function prefetchLatestMonth(data) {
  * Al abrir: lo que vino con la página; si no vino, lo guardado en el navegador al instante y se confirma con el
  * servidor (si la clave de los datos no cambió, no hace falta pedir la vista general otra vez).
  */
+/**
+ * «Información nueva disponible» si la hoja cambió desde la última visita (otra versión de los datos). Si solo cambió el
+ * día (mismos datos) o es la primera visita, no se avisa.
+ */
+function announceNew(previousKey, data) {
+  if (!previousKey || versionOf(previousKey) === versionOf(data.cacheKey)) return;
+  const last = data.available?.lastDay;
+  showNotice(last ? messageText('DATA_NEW', { day: dayLong(last) }) : messageText('DATA_REFRESHED'), 'info');
+}
+
 export async function loadOverview() {
   if (!userEmail.value) api.getServerInfo().then(info => { userEmail.value = info.email || ''; }).catch(() => {});
   const boot = globalThis.APP_BOOT?.overview;
   if (boot) {
+    // Vino con la página: se muestra ya. Lo guardado (leído antes de reemplazarlo) dice si es información nueva.
+    const before = localCache.peek(CACHED_OVERVIEW);
     setOverview(boot);
+    before.then(stored => announceNew(stored?.dataKey, boot));
     return;
   }
   const stored = await localCache.peek(CACHED_OVERVIEW);
@@ -95,14 +109,20 @@ export async function loadOverview() {
       watchSheet();
       return;
     }
-    // Cambió (o no se pudo confirmar): el aviso sale solo mientras llega lo nuevo.
+    // Sin nada guardado o con otra versión de la hoja: aviso de carga. Si solo cambió el día, se carga en silencio.
+    const newSheet = !stored || !key || versionOf(key) !== versionOf(stored.dataKey);
     if (stored) overview.value = { ...overview.value, stale: true };
-    setOverview(await api.getOverview());
+    if (newSheet) showNotice(messageText(stored ? 'DATA_LOADING_NEW' : 'DATA_LOADING'), 'info', { busy: true });
+    const data = await api.getOverview();
+    setOverview(data);
+    if (!stored) showNotice(messageText('DATA_READY'), 'success');
+    else if (newSheet) { announceNew(stored.dataKey, data); if (notice.value?.busy) dismissNotice(); }
   } catch (error) {
     if (stored) {
       overview.value = { ...overview.value, stale: true };
       showNotice(error.text || messageText('SCREEN_FAILED'), 'error');
     } else {
+      dismissNotice();
       overview.value = { status: 'error', data: null, error: error.text || messageText('SCREEN_FAILED'), stale: false };
     }
   }
@@ -139,11 +159,21 @@ function watchSheet() {
 }
 
 let noticeTimer = null;
-export function showNotice(text, level = 'success') {
-  notice.value = { text, level };
-  logActivity(text, level);
+/**
+ * Aviso corto abajo; queda también en la actividad. busy: de carga (con su ícono girando), queda hasta que lo reemplace
+ * otro aviso y no va a la actividad.
+ */
+export function showNotice(text, level = 'success', { busy = false } = {}) {
+  notice.value = { text, level, busy };
   clearTimeout(noticeTimer);
-  noticeTimer = setTimeout(() => { notice.value = null; }, 5000);
+  if (busy) return;
+  logActivity(text, level);
+  noticeTimer = setTimeout(() => { notice.value = null; }, level === 'info' ? 8000 : 5000);
+}
+
+export function dismissNotice() {
+  clearTimeout(noticeTimer);
+  notice.value = null;
 }
 
 /** Abre la vista por comunicación en un día (y, si se indica, en un envío), en la última pestaña usada. */

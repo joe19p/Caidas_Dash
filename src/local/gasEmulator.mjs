@@ -33,6 +33,9 @@ function sheetApi(store, data) {
     getRange(row, column, height = 1, width = 1) {
       if (row < 1 || column < 1) throw new Error('Rango fuera de la hoja');
       store.reads = (store.reads || 0) + 1;
+      // Lecturas por pestaña: las pruebas verifican qué se vuelve a leer y qué sale de la caché.
+      store.readsBy = store.readsBy || {};
+      store.readsBy[data.name] = (store.readsBy[data.name] || 0) + 1;
       return {
         getValues: () => Array.from({ length: height }, (_, r) => Array.from({ length: width }, (_, c) => data.rows[row - 1 + r]?.[column - 1 + c] ?? '')),
         setValues(matrix) {

@@ -32,8 +32,9 @@ Funcionalidades en `docs/FUNCIONALIDADES.md`.
 - **Modo oscuro:** todo componente nuevo debe verse bien en oscuro.
 - **Letra:** Schibsted Grotesk en todo. Cifras sin `tabular-nums` (en esta fuente parecen de máquina de escribir).
   Monoespaciada solo para el JobID.
-- **Tarjetas solo para lo que se elige o se toca** (`panel`: controles, protagonistas, lista de comunicaciones, detalle
-  elegido). Las demás secciones van sobre el fondo con `section-rule` (línea arriba) o `ui/Panel.jsx`.
+- **Cada sección en su bloque** (`panel`): nada queda suelto sobre el fondo. En la vista general y Comparar, cada
+  sección es su propia tarjeta (`<Panel boxed>`); dentro de un bloque (el detalle de una comunicación, con sus pestañas)
+  las secciones se separan con una línea (`section-rule` o `<Panel>` sin `boxed`), sin tarjetas dentro de tarjetas.
 - **Sin muletillas de plantilla:** nada de rótulos en mayúsculas sobre los títulos, ni textos unidos con «·», ni «→»
   al final de enlaces o botones. Se escribe en frases: «ago 26 – oct 26, comparado con…», «Ver las reglas».
 - **Mensajes:** errores y avisos con códigos de `src/shared/messages.mjs`.

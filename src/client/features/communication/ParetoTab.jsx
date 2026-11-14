@@ -7,6 +7,7 @@ import { cx, fmtInt, fmtPct } from '@/lib/format.mjs';
 const W = 1000, PL = 110, PR = 990, PT = 30, PB = 300;
 // Barras que se dibujan: las de más peso; el resto (motivos de poco volumen) va junto en «Otros».
 const MAX_BARS = 14;
+const BAR_STEP_MS = 45;
 
 /** Motivos para el gráfico: hasta MAX_BARS y, si sobran, uno más con la suma del resto. */
 function groupSmall(motives) {
@@ -32,6 +33,8 @@ export function ParetoTab({ detail }) {
   });
   n80 ||= motives.length;
   const current = bars[Math.min(hover, bars.length - 1)];
+  // Entrada: barras una tras otra y, al terminar, el acumulado de izquierda a derecha.
+  const lineDelay = bars.length * BAR_STEP_MS + 250;
   const diff = current.share - current.normal;
   return (
     <section aria-labelledby="pa-t" class="section-rule">
@@ -66,9 +69,9 @@ export function ParetoTab({ detail }) {
             <g key={bar.code} onMouseEnter={() => setHover(index)} class="cursor-pointer">
               <rect x={PL + band * index} y={PT} width={band} height={PB - PT} fill="transparent" />
               <rect x={bar.cx - barWidth / 2} y={y(bar.share)} width={barWidth} height={Math.max(2, bar.share * (PB - PT))} rx="4"
-                fill={bar.grouped ? 'var(--color-line-strong)' : bar.origin === 'blq' ? 'var(--color-blq)' : 'var(--color-asl)'} opacity={top || on ? 1 : 0.4}>
-                <title>{`${bar.name}: ${fmtInt(bar.count)}`}</title>
-              </rect>
+                fill={bar.grouped ? 'var(--color-line-strong)' : bar.origin === 'blq' ? 'var(--color-blq)' : 'var(--color-asl)'} opacity={top || on ? 1 : 0.4}
+                class="anim-grow-y" style={{ '--delay': `${index * BAR_STEP_MS}ms` }}
+                data-tip={`${bar.name}: ${fmtInt(bar.count)}`} />
               <line x1={bar.cx - barWidth / 2 - 4} x2={bar.cx + barWidth / 2 + 4} y1={y(bar.normal)} y2={y(bar.normal)} stroke="var(--color-ink)" stroke-width="2.5" stroke-linecap="round" />
               {bar.share >= 0.01 && <text x={bar.cx} y={y(Math.max(bar.share, bar.normal)) - 8} text-anchor="middle" font-size="12" font-weight="700" fill="var(--color-ink)" opacity={top || on ? 1 : 0.55}>{Math.round(bar.share * 100)}%</text>}
               <text x={bar.cx} y="318" text-anchor="end" transform={`rotate(-38 ${bar.cx.toFixed(1)} 318)`} font-size="12.5"
@@ -76,9 +79,10 @@ export function ParetoTab({ detail }) {
             </g>
           );
         })}
-        <polyline points={bars.map(bar => `${bar.cx.toFixed(1)},${y(bar.cum).toFixed(1)}`).join(' ')} fill="none" stroke="var(--color-ink)" stroke-width="2" stroke-linejoin="round" />
+        <polyline points={bars.map(bar => `${bar.cx.toFixed(1)},${y(bar.cum).toFixed(1)}`).join(' ')} fill="none" stroke="var(--color-ink)" stroke-width="2" stroke-linejoin="round"
+          pathLength="1" class="anim-draw" style={{ '--delay': `${lineDelay}ms` }} />
         {bars.map((bar, index) => (
-          <g key={bar.code} pointer-events="none">
+          <g key={bar.code} pointer-events="none" class="anim-fade" style={{ '--delay': `${lineDelay + 150 + index * 50}ms` }}>
             <circle cx={bar.cx} cy={y(bar.cum)} r={index === hover ? 6 : 4} fill="var(--color-surface)" stroke="var(--color-ink)" stroke-width="2" />
             {/* Cifra del acumulado en cada punto, para ver cómo crece (la del primero ya está sobre su barra). Con contorno del
                 fondo para que se lea sobre la línea y la franja. */}

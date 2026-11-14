@@ -64,7 +64,7 @@ function Who({ item }) {
 
 function Per100({ items, worst }) {
   return (
-    <Panel id="per100" title="De cada 100 personas" subtitle="Qué pasó con la audiencia de cada comunicación: cuánto se entregó y cuánto cayó, y por qué lado.">
+    <Panel boxed id="per100" title="De cada 100 personas" subtitle="Qué pasó con la audiencia de cada comunicación: cuánto se entregó y cuánto cayó, y por qué lado.">
       <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-muted">
         <span class="flex items-center gap-1.5"><span class="size-2.5 rounded-[3px] bg-ent" />Entregados</span>
         <span class="flex items-center gap-1.5"><span class="size-2.5 rounded-[3px] bg-reb" />Rebotes</span>
@@ -230,7 +230,7 @@ export function CompareView() {
 
       <Per100 items={items} worst={worst} />
 
-      <section aria-label="Detalle de la comparación" class="flex flex-col gap-3.5">
+      <section aria-label="Detalle de la comparación" class="panel flex flex-col gap-3.5 p-4">
         <div role="group" aria-label="Cómo comparar" class="flex flex-wrap border-b border-line">
           {[['tabla', 'Tabla'], ['matriz', 'Matriz de motivos']].map(([id, label]) => (
             <button key={id} type="button" aria-pressed={tab === id} onClick={() => setTab(id)}

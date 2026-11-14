@@ -1,11 +1,11 @@
-// Sección con título, subtítulo opcional y acciones a la derecha. Va sobre el fondo, separada por una línea: las
-// tarjetas quedan para lo que se elige o se toca.
+// Sección con título, subtítulo opcional y acciones a la derecha. boxed: en su propio bloque (cada sección de la vista
+// general y de Comparar); sin boxed, separada por una línea dentro de un bloque (el detalle de una comunicación).
 import { cx } from '@/lib/format.mjs';
 
-export function Panel({ title, subtitle, actions, children, class: className = '', id }) {
+export function Panel({ title, subtitle, actions, children, class: className = '', id, boxed = false }) {
   const titleId = id ? `${id}-t` : undefined;
   return (
-    <section aria-labelledby={titleId} class={cx('section-rule', className)}>
+    <section aria-labelledby={titleId} class={cx(boxed ? 'panel flex flex-col gap-3 p-4' : 'section-rule', className)}>
       {(title || actions) && (
         <div class="flex flex-wrap items-start justify-between gap-2.5">
           <div class="min-w-0">

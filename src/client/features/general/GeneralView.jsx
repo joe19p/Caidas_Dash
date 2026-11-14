@@ -70,9 +70,8 @@ function HeroComms({ period, history, active, onPick }) {
           const height = (item.comms / max) * 92;
           const fill = !inPeriod(item.month, period) ? 'var(--color-line-strong)' : item.partial ? 'url(#partial-month)' : 'var(--color-series)';
           return (
-            <rect key={item.month} x={index * width + 2} y={96 - height} width={Math.max(1, width - 4)} height={height} rx="3" fill={fill}>
-              <title>{`${monthShort(item.month)}: ${item.comms} comunicaciones${item.partial ? ' (mes en curso, hasta hoy)' : ''}`}</title>
-            </rect>
+            <rect key={item.month} x={index * width + 2} y={96 - height} width={Math.max(1, width - 4)} height={height} rx="3" fill={fill}
+              data-tip={`${monthShort(item.month)}: ${item.comms} comunicaciones${item.partial ? ' (mes en curso, hasta hoy)' : ''}`} />
           );
         })}
         <text x="0" y="108" font-size="11" fill="var(--color-ink-muted)">{monthShort(history[0].month)}</text>
@@ -143,7 +142,7 @@ function Kpi({ metricKey, period, history, mode, active, onPick }) {
 
 function RulesPanel({ rules, mode }) {
   return (
-    <Panel id="rules" title="Reglas de protección aplicadas"
+    <Panel boxed id="rules" title="Reglas de protección aplicadas"
       subtitle="Qué reglas del CRM y de Marketing Cloud cuidan la base (frecuencia, reputación y consentimiento), y cómo cambia su peso.">
       <div class="grid grid-cols-[minmax(0,1fr)_64px_130px_80px] items-center gap-x-3.5 border-b border-line pb-1.5 text-xs font-semibold text-ink-muted">
         <span>Regla</span><span class="text-right">Peso</span><span>24 meses</span><span class="text-right">vs anterior</span>
@@ -173,7 +172,7 @@ function RulesPanel({ rules, mode }) {
 
 function FamiliesPanel({ families, mode }) {
   return (
-    <Panel id="families" title="Por familia de comunicación" subtitle="Cada familia en el periodo. La familia sale del nombre de la maqueta (CYBER, PROMO, ONBOARDING…).">
+    <Panel boxed id="families" title="Por familia de comunicación" subtitle="Cada familia en el periodo. La familia sale del nombre de la maqueta (CYBER, PROMO, ONBOARDING…).">
       <div class="overflow-x-auto">
         <table class="w-full border-collapse text-[13px]">
           <thead>
@@ -208,7 +207,7 @@ const REVIEW_TEXT = { or: ['apertura', 'bajo'], ctor: ['CTOR', 'bajo'], bounce: 
 
 function ReviewPanel({ review }) {
   return (
-    <Panel id="review" title="Comunicaciones a revisar" subtitle="Las que más se alejan de lo normal en su familia durante el periodo. Toca una para verla en detalle.">
+    <Panel boxed id="review" title="Comunicaciones a revisar" subtitle="Las que más se alejan de lo normal en su familia durante el periodo. Toca una para verla en detalle.">
       {review.length ? (
         <div class="grid grid-cols-[repeat(auto-fit,minmax(240px,1fr))] gap-2.5">
           {review.map(item => {
@@ -302,7 +301,7 @@ export function GeneralView() {
         ))}
       </section>
 
-      <section class="section-rule"><Timeline history={data.history} metric={metric} mode={mode} period={period} /></section>
+      <section class="panel p-4"><Timeline history={data.history} metric={metric} mode={mode} period={period} /></section>
 
       <CalendarHeat calendar={period.calendar} />
 

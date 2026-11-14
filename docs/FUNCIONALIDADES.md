@@ -85,11 +85,20 @@ Pestañas:
 
 ## Rapidez y datos guardados
 
-- **En el servidor:** lo calculado queda en caché (CacheService, 6 horas) con la versión de los datos y el día en la
-  clave. La versión sube con «Actualizar datos» y cada vez que alguien cambia la hoja.
-- **En el navegador:** la vista general, los meses y cada comunicación abierta quedan en IndexedDB
-  (`src/client/services/localCache.mjs`) con la misma clave (`getCacheKey`). Volver a abrir la app, a un mes o a una
-  comunicación no espera al servidor mientras la clave no cambie; si cambia, lo anterior se borra. Si el navegador
-  bloquea IndexedDB, todo funciona igual pidiéndolo al servidor.
+- **En el servidor:** la hoja se lee **una vez por versión de los datos**: los registros quedan en caché comprimidos
+  (CacheService, 6 horas) y cada cálculo (otro día, otro periodo, otro mes) sale de esa copia. La versión sube con
+  «Actualizar datos» y cada vez que alguien cambia la hoja. Lo calculado también queda en caché, con la clave según lo
+  que de verdad lo cambia: la vista general por versión y día; un periodo cerrado y el detalle por versión y mes; un
+  mes, una búsqueda y una comparación solo por versión.
+- **En el navegador:** lo mismo en IndexedDB (`src/client/services/localCache.mjs`), con la clave del servidor
+  (`getCacheKey`): al día siguiente, si la hoja no cambió, solo se pide la vista general; meses, comunicaciones,
+  búsquedas y periodos cerrados salen de lo guardado. Si la hoja cambió, se borra lo de la versión anterior. Si el
+  navegador bloquea IndexedDB, todo funciona igual pidiéndolo al servidor.
+- **Avisos al cargar:** sin nada guardado, «Cargando los datos de la hoja…» y luego «Datos listos.»; si la hoja cambió
+  desde la última visita, «Información nueva disponible: envíos hasta el …»; si lo guardado sigue vigente, ninguno.
+  Cada 2 minutos se revisa si la hoja cambió (la barra de estado y la campana avisan).
 - **Precarga:** con la vista general lista, el mes más reciente se pide en segundo plano para «Por comunicación».
-- **localStorage** solo guarda preferencias: el tema y la última pestaña de la comunicación.
+- **localStorage** solo guarda preferencias: el tema, la última pestaña de la comunicación, el nivel del Funnel y el
+  calendario contraído.
+- **Tooltips propios** (`ui/TooltipLayer.jsx`): reemplazan a los del navegador en toda la app; toman el `title` de
+  cada elemento (en los gráficos, `data-tip`), salen al pasar el mouse o con el teclado y respetan claro y oscuro.

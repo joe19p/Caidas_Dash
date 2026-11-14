@@ -169,7 +169,7 @@ export function SearchBox() {
     openCommunication({ day: item.start.slice(0, 10), job: item.job });
   };
   return (
-    <div ref={root} role="search" class="relative min-w-0 flex-[1_1_240px] sm:max-w-[720px]">
+    <div ref={root} role="search" class="relative min-w-0 flex-[0_1_420px] max-sm:flex-[1_1_100%]">
       <div class="flex h-9 items-center gap-1.5 rounded-xl bg-white/10 pr-1 pl-2.5 ring-1 ring-white/50 ring-inset focus-within:bg-white/15 focus-within:ring-white"
         onClick={() => { searchOpen.value = true; input.current?.focus(); }}>
         <Icon name="search" size={16} class="flex-none text-white/85" />
@@ -195,7 +195,7 @@ export function SearchBox() {
           ))}
         </span>
       </div>
-      <Popover open={open} onClose={() => { searchOpen.value = false; }} anchor={root} label="Resultados de la búsqueda" focusOnClose="input" class="w-[620px] overflow-hidden">
+      <Popover open={open} onClose={() => { searchOpen.value = false; }} anchor={root} label="Resultados de la búsqueda" focusOnClose="input" align="right" class="w-[620px] overflow-hidden">
         <Results month={month} onOpen={openItem} />
       </Popover>
     </div>
