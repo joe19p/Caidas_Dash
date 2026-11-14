@@ -47,8 +47,10 @@ Como el del cronograma, en la barra azul (atajo «/»):
 - La vista **Comparar** (pestaña de la barra, con el número de elegidas) las muestra lado a lado, cada una por
   separado (no se suman personas entre ellas), con `getCompare`:
   - **De cada 100 personas:** una barra por comunicación (entregados, rebotes, bloqueos y autosupresión) y cuánto cae.
-  - **Tabla:** audiencia, enviado, no enviado, autosupresión, bloqueos, rebote, apertura, CTOR y motivo principal;
-    se ordena tocando el encabezado y cada nombre abre la comunicación.
+  - **Tabla:** audiencia, enviado, no enviado, autosupresión, bloqueos, rebote, apertura, CTOR y motivo principal,
+    con su ícono y en dos grupos («qué pasó con la audiencia» y «cómo le fue al envío»). Desde 3 comunicaciones, la
+    mejor de cada columna va en verde y la peor en rojo; al final, la mediana de las elegidas (de las tasas, sin sumar
+    personas). Se ordena tocando el encabezado (también por nombre) y cada nombre abre la comunicación.
   - **Matriz de motivos:** los 8 motivos de más peso en la selección (y «Otros motivos»); cada celda es la parte de la
     audiencia que cayó por ese motivo, en la escala de 5 pasos.
 

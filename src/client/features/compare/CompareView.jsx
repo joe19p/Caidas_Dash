@@ -16,17 +16,21 @@ import { Skeleton, EmptyState, ErrorState } from '@/ui/States.jsx';
 
 const share = (part, item) => (item.base ? part / item.base : null);
 
-/** Columnas de la tabla: valor para ordenar y texto. */
+/** Columnas de la tabla: valor para ordenar, texto, grupo (0 sin grupo, 1 audiencia, 2 envío), qué conviene (better) y
+ *  el ícono, en el color de su destino en «De cada 100 personas». */
 const COLUMNS = [
-  { key: 'base', label: 'Audiencia', value: item => item.base, text: value => fmtInt(value) },
-  { key: 'sent', label: 'Enviado', value: item => share(item.sends, item), text: value => fmtPct(value) },
-  { key: 'drop', label: 'No enviado', value: item => item.rates.drop, text: value => fmtPct(value) },
-  { key: 'asl', label: 'Autosupresión', value: item => share(item.asl, item), text: value => fmtPct(value) },
-  { key: 'blq', label: 'Bloqueos', value: item => share(item.blq, item), text: value => fmtPct(value) },
-  { key: 'bounce', label: 'Rebote', value: item => item.rates.bounce, text: value => fmtPct(value, 2) },
-  { key: 'or', label: 'Apertura', value: item => item.rates.or, text: value => fmtPct(value) },
-  { key: 'ctor', label: 'CTOR', value: item => item.rates.ctor, text: value => fmtPct(value, 2) }
+  { key: 'base', label: 'Audiencia', group: 0, icon: 'users', tone: 'text-ink-muted', value: item => item.base, text: value => fmtInt(value) },
+  { key: 'sent', label: 'Enviado', group: 1, better: 'up', icon: 'mailSend', tone: 'text-ent', value: item => share(item.sends, item), text: value => fmtPct(value) },
+  { key: 'drop', label: 'No enviado', group: 1, better: 'down', icon: 'mailX', tone: 'text-ink-muted', value: item => item.rates.drop, text: value => fmtPct(value) },
+  { key: 'asl', label: 'Autosupresión', group: 1, better: 'down', icon: DESTINATION_ICONS.asl, tone: 'text-asl', value: item => share(item.asl, item), text: value => fmtPct(value) },
+  { key: 'blq', label: 'Bloqueos', group: 1, better: 'down', icon: DESTINATION_ICONS.blq, tone: 'text-blq', value: item => share(item.blq, item), text: value => fmtPct(value) },
+  { key: 'bounce', label: 'Rebote', group: 2, better: 'down', icon: DESTINATION_ICONS.reb, tone: 'text-reb', value: item => item.rates.bounce, text: value => fmtPct(value, 2) },
+  { key: 'or', label: 'Apertura', group: 2, better: 'up', icon: 'mailOpen', tone: 'text-ent', value: item => item.rates.or, text: value => fmtPct(value) },
+  { key: 'ctor', label: 'CTOR', group: 2, better: 'up', icon: 'click', tone: 'text-ent', value: item => item.rates.ctor, text: value => fmtPct(value, 2) }
 ];
+// La primera columna de cada grupo lleva la línea que separa los grupos.
+const GROUP_START = new Set(['sent', 'bounce']);
+const GROUPS = [['Qué pasó con la audiencia', 4], ['Cómo le fue al envío', 3]];
 
 // Escala de la matriz (5 pasos, como el calendario de calor; en oscuro, más caída es más claro). Clases literales:
 // Tailwind solo emite las que encuentra escritas.
@@ -34,6 +38,7 @@ const STEP = ['', 'bg-s1 text-on-s1', 'bg-s2 text-on-s2', 'bg-s3 text-on-s3', 'b
 const SWATCHES = ['bg-s1', 'bg-s2', 'bg-s3', 'bg-s4', 'bg-s5'];
 
 function sortItems(items, sort) {
+  if (sort.key === 'name') return [...items].sort((a, b) => a.name.localeCompare(b.name, 'es') * sort.dir);
   const column = COLUMNS.find(item => item.key === sort.key) || COLUMNS[2];
   return [...items].sort((a, b) => {
     const x = column.value(a);
@@ -97,24 +102,62 @@ function Per100({ items, worst }) {
   );
 }
 
-function CompareTable({ items, sort, onSort, worst }) {
+/** Mediana de una lista (sin vacíos), o null. */
+function median(values) {
+  const sorted = values.filter(value => value != null).sort((a, b) => a - b);
+  if (!sorted.length) return null;
+  const middle = Math.floor(sorted.length / 2);
+  return sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
+}
+
+/** Mejor y peor de cada columna con «better», desde 3 comunicaciones (con 2, todo sería mejor o peor); si todas valen
+ *  lo mismo, ninguno. */
+function extremesOf(items) {
+  const result = {};
+  COLUMNS.filter(column => column.better).forEach(column => {
+    const values = items.map(column.value).filter(value => value != null);
+    if (values.length < 3) return;
+    const high = Math.max(...values);
+    const low = Math.min(...values);
+    if (high === low) return;
+    result[column.key] = column.better === 'up' ? { best: high, worst: low } : { best: low, worst: high };
+  });
+  return result;
+}
+
+function CompareTable({ items, sort, onSort }) {
+  const extremes = extremesOf(items);
+  const header = (key, label, className, content) => {
+    const on = sort.key === key;
+    return (
+      <th key={key} scope="col" aria-sort={on ? (sort.dir < 0 ? 'descending' : 'ascending') : 'none'} class={cx('py-2 font-semibold whitespace-nowrap', className)}>
+        <button type="button" title={`Ordenar por ${label.toLowerCase()}`} onClick={() => onSort(key)}
+          class={cx('inline-flex items-center gap-1.5 hover:text-ink focus-visible:outline-2 focus-visible:outline-brand-text', on && 'text-brand-text')}>
+          {content}
+          {/* La flecha siempre ocupa su lugar: el encabezado no cambia de ancho al ordenar. */}
+          <Icon name="down" size={12} class={cx('flex-none', !on && 'opacity-0', on && sort.dir > 0 && 'rotate-180')} />
+        </button>
+      </th>
+    );
+  };
+  const divider = key => GROUP_START.has(key) && 'border-l border-line';
   return (
     <div class="overflow-x-auto">
-      <table class="w-full border-collapse text-[13px]">
+      <table class="w-full min-w-[1080px] border-collapse text-[13px]">
         <thead>
+          <tr class="text-xs">
+            <th colSpan={2} />
+            {GROUPS.map(([label, span]) => (
+              <th key={label} colSpan={span} scope="colgroup" class="border-l border-line px-2.5 pt-1 font-bold text-ink">
+                <span class="block border-b-2 border-line-strong pb-1.5 text-center">{label}</span>
+              </th>
+            ))}
+            <th colSpan={2} />
+          </tr>
           <tr class="text-xs text-ink-muted">
-            <th scope="col" class="py-2 pr-3 text-left font-semibold">Comunicación</th>
-            {COLUMNS.map(column => {
-              const on = sort.key === column.key;
-              return (
-                <th key={column.key} scope="col" class="px-2.5 py-2 text-right font-semibold whitespace-nowrap"
-                  aria-sort={on ? (sort.dir < 0 ? 'descending' : 'ascending') : 'none'}>
-                  <button type="button" class={cx('inline-flex items-center gap-1 hover:text-ink', on && 'text-brand-text')} onClick={() => onSort(column.key)}>
-                    {column.label}{on && <Icon name="down" size={12} class={sort.dir > 0 ? 'rotate-180' : ''} />}
-                  </button>
-                </th>
-              );
-            })}
+            {header('name', 'Comunicación', 'pr-3 text-left', 'Comunicación')}
+            {COLUMNS.map(column => header(column.key, column.label, cx('px-2.5 text-right', divider(column.key)),
+              <><Icon name={column.icon} size={18} class={cx('flex-none', column.tone)} />{column.label}</>))}
             <th scope="col" class="py-2 pl-2.5 text-left font-semibold">Motivo principal</th>
             <th scope="col"><span class="sr-only">Quitar</span></th>
           </tr>
@@ -125,14 +168,21 @@ function CompareTable({ items, sort, onSort, worst }) {
               <td class="min-w-[240px] py-2.5 pr-3"><Who item={item} /></td>
               {COLUMNS.map(column => {
                 const value = column.value(item);
+                const mark = extremes[column.key];
+                const tone = mark && value === mark.best ? 'bg-success-soft text-success' : mark && value === mark.worst ? 'bg-danger-soft text-danger-ink' : '';
                 return (
-                  <td key={column.key} class={cx('px-2.5 py-2.5 text-right whitespace-nowrap', column.key === 'drop' && value === worst && 'font-bold text-danger')}>
-                    {column.text(value)}
+                  <td key={column.key} class={cx('px-2.5 py-2.5 text-right whitespace-nowrap', divider(column.key))}>
+                    {tone ? <b class={cx('rounded-md px-1.5 py-0.5', tone)}>{column.text(value)}</b> : column.text(value)}
                   </td>
                 );
               })}
-              <td class="min-w-[160px] py-2.5 pl-2.5 text-xs">
-                {item.top ? <><b class="text-[13px]">{item.top.name}</b><br /><span class="text-ink-muted">{fmtPct(share(item.top.count, item))} de la audiencia</span></> : '—'}
+              <td class="min-w-[180px] py-2.5 pl-2.5 text-xs">
+                {item.top ? (
+                  <span class="flex items-start gap-2">
+                    <Icon name={motiveIcon(item.top.code, item.top.origin)} size={19} class={cx('flex-none', item.top.origin === 'blq' ? 'text-blq' : 'text-asl')} />
+                    <span><b class="text-[13px]">{item.top.name}</b><br /><span class="text-ink-muted">{fmtPct(share(item.top.count, item))} de la audiencia</span></span>
+                  </span>
+                ) : '—'}
               </td>
               <td class="py-2 pl-1">
                 <button type="button" class="rounded-md p-1 text-ink-muted hover:bg-surface-muted hover:text-ink" aria-label={`Quitar ${item.name}`} title="Quitar de la comparación"
@@ -140,6 +190,14 @@ function CompareTable({ items, sort, onSort, worst }) {
               </td>
             </tr>
           ))}
+          {/* Referencia: la mediana de cada tasa entre las elegidas (no suma personas entre comunicaciones). */}
+          <tr class="border-t-2 border-line-strong bg-surface-muted font-semibold text-ink-muted">
+            <td class="py-2.5 pr-3 pl-2 text-ink">Mediana de las elegidas</td>
+            {COLUMNS.map(column => (
+              <td key={column.key} class={cx('px-2.5 py-2.5 text-right whitespace-nowrap', divider(column.key))}>{column.text(median(items.map(column.value)))}</td>
+            ))}
+            <td colSpan={2} />
+          </tr>
         </tbody>
       </table>
     </div>
@@ -159,7 +217,7 @@ function MotiveMatrix({ items, motives }) {
             <th scope="col" class="py-2 pr-3 text-left font-semibold">Comunicación</th>
             {columns.map(column => (
               <th key={column.key} scope="col" class="min-w-[76px] px-1 py-2 text-center align-bottom font-semibold">
-                {column.origin && <Icon name={motiveIcon(column.key, column.origin)} size={14} class={cx('mx-auto mb-1 block', column.origin === 'blq' ? 'text-blq' : 'text-asl')} />}
+                {column.origin && <Icon name={motiveIcon(column.key, column.origin)} size={22} class={cx('mx-auto mb-1.5 block', column.origin === 'blq' ? 'text-blq' : 'text-asl')} />}
                 {column.name}
               </th>
             ))}
@@ -224,14 +282,14 @@ export function CompareView() {
   const items = sortItems(state.data.items.filter(item => jobs.includes(item.job)), sort);
   const worst = Math.max(...items.map(item => item.rates.drop ?? -1));
   const column = COLUMNS.find(item => item.key === sort.key);
-  const onSort = key => setSort(previous => ({ key, dir: previous.key === key ? -previous.dir : -1 }));
+  const onSort = key => setSort(previous => ({ key, dir: previous.key === key ? -previous.dir : key === 'name' ? 1 : -1 }));
   return (
     <div class={cx('flex flex-col gap-5 transition-opacity', state.status === 'loading' && 'opacity-60')} aria-busy={state.status === 'loading'}>
       <div class="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 class="text-[22px] font-bold">Comparar {items.length} comunicaciones</h1>
           <p class="mt-1 text-[13px] text-ink-muted">
-            {spanText(items)}. Ordenadas por {column.label.toLowerCase()}, de {sort.dir < 0 ? 'mayor a menor' : 'menor a mayor'}. Cada una se mira por separado: no se suman personas entre ellas.
+            {spanText(items)}. Ordenadas {column ? `por ${column.label.toLowerCase()}, de ${sort.dir < 0 ? 'mayor a menor' : 'menor a mayor'}` : `por nombre, de la ${sort.dir > 0 ? 'A a la Z' : 'Z a la A'}`}. Cada una se mira por separado: no se suman personas entre ellas.
           </p>
         </div>
         <span class="flex flex-wrap gap-2">
@@ -263,7 +321,14 @@ export function CompareView() {
           ))}
         </div>
         {tab === 'tabla'
-          ? <><CompareTable items={items} sort={sort} onSort={onSort} worst={worst} /><p class="text-xs text-ink-muted">Toca un encabezado para ordenar y un nombre para abrir la comunicación.</p></>
+          ? <>
+            <CompareTable items={items} sort={sort} onSort={onSort} />
+            <div class="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-ink-muted">
+              {items.length > 2 && <span class="flex items-center gap-1.5"><b class="rounded-md bg-success-soft px-1.5 py-0.5 text-success">Verde</b>la mejor de la columna</span>}
+              {items.length > 2 && <span class="flex items-center gap-1.5"><b class="rounded-md bg-danger-soft px-1.5 py-0.5 text-danger-ink">Rojo</b>la peor</span>}
+              <span>Toca un encabezado para ordenar y un nombre para abrir la comunicación.</span>
+            </div>
+          </>
           : <>
             <MotiveMatrix items={items} motives={state.data.motives} />
             <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-ink-muted">

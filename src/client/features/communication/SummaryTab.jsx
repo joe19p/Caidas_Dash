@@ -156,18 +156,27 @@ function DeliveryRing({ record }) {
   let offset = 0;
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} role="img" class="flex-none" aria-label={`Llegó el ${arrived} de lo enviado`}>
+      {/* Entrada: una máscara que se dibuja en sentido horario desde arriba (anim-draw) descubre los tramos en orden. */}
+      <mask id="delivery-ring-mask">
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="white" stroke-width={stroke + 2} pathLength="1"
+          class="anim-draw" style={{ '--delay': '120ms' }} transform={`rotate(-90 ${size / 2} ${size / 2})`} />
+      </mask>
       <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--color-surface-muted)" stroke-width={stroke} />
-      {parts.map(([key, value, opacity, color]) => {
-        const arc = (value / total) * length;
-        const start = offset;
-        offset += arc;
-        return value > 0 && (
-          <circle key={key} cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} stroke-opacity={opacity} stroke-width={stroke}
-            stroke-dasharray={`${Math.max(arc - 1.5, 0.8)} ${length}`} stroke-dashoffset={-start} transform={`rotate(-90 ${size / 2} ${size / 2})`} />
-        );
-      })}
-      <text x={size / 2} y={size / 2 + 2} text-anchor="middle" font-size="25" font-weight="800" fill="var(--color-ink)">{arrived}</text>
-      <text x={size / 2} y={size / 2 + 20} text-anchor="middle" font-size="12" fill="var(--color-ink-muted)">llegó</text>
+      <g mask="url(#delivery-ring-mask)">
+        {parts.map(([key, value, opacity, color]) => {
+          const arc = (value / total) * length;
+          const start = offset;
+          offset += arc;
+          return value > 0 && (
+            <circle key={key} cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} stroke-opacity={opacity} stroke-width={stroke}
+              stroke-dasharray={`${Math.max(arc - 1.5, 0.8)} ${length}`} stroke-dashoffset={-start} transform={`rotate(-90 ${size / 2} ${size / 2})`} />
+          );
+        })}
+      </g>
+      <g class="anim-fade" style={{ '--delay': '380ms' }}>
+        <text x={size / 2} y={size / 2 + 2} text-anchor="middle" font-size="25" font-weight="800" fill="var(--color-ink)">{arrived}</text>
+        <text x={size / 2} y={size / 2 + 20} text-anchor="middle" font-size="12" fill="var(--color-ink-muted)">llegó</text>
+      </g>
     </svg>
   );
 }
