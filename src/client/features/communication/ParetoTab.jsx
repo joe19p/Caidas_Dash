@@ -3,7 +3,8 @@
 import { useState } from 'preact/hooks';
 import { cx, fmtInt, fmtPct } from '@/lib/format.mjs';
 
-const W = 1000, PL = 110, PR = 990, PT = 16, PB = 300;
+// PT deja lugar arriba para la cifra del acumulado en 100 %.
+const W = 1000, PL = 110, PR = 990, PT = 30, PB = 300;
 // Barras que se dibujan: las de más peso; el resto (motivos de poco volumen) va junto en «Otros».
 const MAX_BARS = 14;
 
@@ -18,7 +19,7 @@ function groupSmall(motives) {
 export function ParetoTab({ detail }) {
   const [hover, setHover] = useState(0);
   const motives = groupSmall(detail.motives);
-  if (!motives.length) return <p class="panel p-6 text-[13px] text-ink-muted">Esta comunicación se envió a toda su base: no hay motivos de no envío.</p>;
+  if (!motives.length) return <p class="py-4 text-[13px] text-ink-muted">Esta comunicación se envió a toda su base: no hay motivos de no envío.</p>;
   const y = share => PB - share * (PB - PT);
   const band = (PR - PL) / motives.length;
   const barWidth = Math.min(30, band * 0.6);
@@ -77,7 +78,17 @@ export function ParetoTab({ detail }) {
         })}
         <polyline points={bars.map(bar => `${bar.cx.toFixed(1)},${y(bar.cum).toFixed(1)}`).join(' ')} fill="none" stroke="var(--color-ink)" stroke-width="2" stroke-linejoin="round" />
         {bars.map((bar, index) => (
-          <circle key={bar.code} cx={bar.cx} cy={y(bar.cum)} r={index === hover ? 6 : 4} fill="var(--color-surface)" stroke="var(--color-ink)" stroke-width="2" pointer-events="none" />
+          <g key={bar.code} pointer-events="none">
+            <circle cx={bar.cx} cy={y(bar.cum)} r={index === hover ? 6 : 4} fill="var(--color-surface)" stroke="var(--color-ink)" stroke-width="2" />
+            {/* Cifra del acumulado en cada punto, para ver cómo crece (la del primero ya está sobre su barra). Con contorno del
+                fondo para que se lea sobre la línea y la franja. */}
+            {index > 0 && (
+              <text x={bar.cx} y={y(bar.cum) - 11} text-anchor="middle" font-size="11.5" font-weight={index === hover ? 800 : 600}
+                fill={index === hover ? 'var(--color-ink)' : 'var(--color-ink-muted)'} paint-order="stroke" stroke="var(--color-surface)" stroke-width="4" stroke-linejoin="round">
+                {Math.round(bar.cum * 100)}%
+              </text>
+            )}
+          </g>
         ))}
       </svg>
       <ul class="flex flex-wrap gap-x-5 gap-y-1.5 text-[12.5px] text-ink-muted">

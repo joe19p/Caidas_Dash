@@ -124,3 +124,15 @@
 }
 
 /* Las cifras usan la misma letra que el resto: en esta fuente las cifras tabulares parecen de máquina de escribir. */
+
+/* Funnel: las columnas entran en orden y los conectores se dibujan (--delay escalona; --len es el largo del trazo).
+   Sin animación si el equipo pide menos movimiento. */
+@keyframes funnel-in { from { opacity: 0; transform: translateX(-10px); } }
+@keyframes funnel-draw { from { stroke-dashoffset: var(--len); } }
+@keyframes funnel-fade { from { opacity: 0; } }
+.funnel-enter { animation: funnel-in 0.45s cubic-bezier(0.2, 0.7, 0.2, 1) both; animation-delay: var(--delay, 0ms); }
+.funnel-draw { stroke-dasharray: var(--len); animation: funnel-draw 0.5s ease both; animation-delay: var(--delay, 0ms); }
+.funnel-fade { animation: funnel-fade 0.2s ease both; animation-delay: var(--delay, 0ms); }
+@media (prefers-reduced-motion: reduce) {
+  .funnel-enter, .funnel-draw, .funnel-fade { animation: none; }
+}

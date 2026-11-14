@@ -35,11 +35,14 @@ function Waffle({ detail }) {
   return (
     <Panel id="w" title={`De cada 100 personas de esta comunicación, ${counts[0] === 1 ? '1 abre' : `${counts[0]} abren`}`}>
       <div class="flex flex-wrap items-start gap-7">
+        {/* El mouse se escucha en toda la cuadrícula: pasar por el espacio entre dos cuadros del mismo grupo no lo suelta
+            (antes cada cuadro tenía su entrada y salida, y el color parpadeaba al cruzar el espacio). */}
         <div role="img" aria-label={GROUPS.map(([, label], index) => `${counts[index]} ${label.toLowerCase()}`).join(', ')}
+          onMouseOver={event => { const key = event.target.dataset?.group; if (key && key !== focus) setFocus(key); }}
+          onMouseLeave={() => setFocus(null)}
           class="grid flex-none grid-cols-[repeat(10,24px)] gap-1.5">
           {cells.map(([key, color], index) => (
-            <span key={index} onMouseEnter={() => setFocus(key)} onMouseLeave={() => setFocus(null)}
-              class={cx('size-6 rounded-md transition-opacity', color, focus && focus !== key && 'opacity-20')} />
+            <span key={index} data-group={key} class={cx('size-6 rounded-md transition-opacity duration-150', color, focus && focus !== key && 'opacity-20')} />
           ))}
         </div>
         <div role="table" aria-label="Destino de la audiencia de esta comunicación" class="flex min-w-0 flex-[1_1_420px] flex-col text-[13px]">
@@ -119,8 +122,9 @@ export function SummaryTab({ detail, onAllMotives }) {
   const diff = key => (rates[key] == null || normal[key] == null ? null : rates[key] - normal[key]);
   const bounceParts = [['Hard', record.hard], ['Soft', record.soft], ['Otros', Math.max(0, record.bounces - record.hard - record.soft)]];
   return (
-    <div class="flex flex-col gap-4">
-      <div class="grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-2.5">
+    <div class="@container flex flex-col gap-4">
+      {/* 6, 3 o 2 por fila según el ancho del bloque: nunca uno solo en la última fila. */}
+      <div class="grid grid-cols-2 gap-x-2.5 gap-y-4 @lg:grid-cols-3 @4xl:grid-cols-6">
         <Kpi label="Audiencia" value={fmtInt(record.base)} note="Base antes de exclusiones" />
         <Kpi label="No enviados" value={fmtPct(rates.drop)} delta={diff('drop')} better="down" />
         <Kpi label="Enviados" value={fmtInt(record.sends)} note={`${fmtPct(record.base ? record.sends / record.base : null)} de la audiencia`} />

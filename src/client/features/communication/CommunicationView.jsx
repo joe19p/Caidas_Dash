@@ -1,6 +1,8 @@
 // Vista por comunicación: (1) se elige el día en el calendario del mes, (2) se busca y elige la comunicación, y se ve
 // solo lo de ella en tres pestañas: Resumen, Motivos de no envío (Pareto) y Simulador.
+import { useState } from 'preact/hooks';
 import { overview, pick, dataKey } from '@/state/app.mjs';
+import { readStored, writeStored } from '@/services/storage.mjs';
 import { commMonth } from '@/state/period.mjs';
 import { useLoad } from '@/lib/useLoad.mjs';
 import { selectedJobs, toggleSelected, SELECTION_MAX } from '@/state/search.mjs';
@@ -18,18 +20,51 @@ import { SimulatorTab } from './SimulatorTab.jsx';
 
 const setPick = partial => { pick.value = { ...pick.value, ...partial }; };
 
-/** Calendario de días del mes elegido en la barra de arriba (el mes se cambia allí, no aquí). */
+const pickDay = date => setPick({ day: date, job: '', q: '' });
+
+/**
+ * Calendario de días del mes elegido en la barra de arriba (el mes se cambia allí, no aquí). Se puede contraer a una
+ * línea (día elegido y flechas al día con envíos anterior o siguiente) para que la lista gane alto; se recuerda.
+ */
 function DayPicker({ month, days, day }) {
+  const [compact, setCompact] = useState(() => readStored('calendar_compact', false) === true);
+  const toggle = () => { setCompact(!compact); writeStored('calendar_compact', !compact); };
   const first = `${month}-01`;
   const [year, monthNumber] = month.split('-').map(Number);
   const total = new Date(Date.UTC(year, monthNumber, 0)).getUTCDate();
   const blanks = weekdayIndex(first);
+  const sendDays = Object.keys(days).sort();
+  const at = sendDays.indexOf(day);
+  const [before, after] = [sendDays[at - 1], sendDays[at + 1]];
+  const arrow = 'inline-flex size-[30px] flex-none items-center justify-center rounded-lg text-ink-muted hover:bg-surface-muted disabled:opacity-30';
+  const header = (
+    <div class="flex items-center justify-between gap-2">
+      <span class="flex items-center gap-2 text-[13px] font-bold"><span class="inline-flex size-5 items-center justify-center rounded-full bg-brand text-[11.5px] text-white">1</span>Día de envío</span>
+      <span class="flex items-center gap-1">
+        {!compact && <span class="text-[13px] font-semibold text-ink-muted first-letter:uppercase">{monthLong(month)}</span>}
+        <button type="button" class={arrow} aria-expanded={!compact} onClick={toggle}
+          aria-label={compact ? 'Mostrar el calendario' : 'Contraer el calendario'} title={compact ? 'Mostrar el calendario' : 'Contraer el calendario'}>
+          <Icon name="down" size={16} class={cx('transition-transform', !compact && 'rotate-180')} />
+        </button>
+      </span>
+    </div>
+  );
+  if (compact) {
+    return (
+      <section class="panel flex flex-col gap-2 px-4 py-3">
+        {header}
+        <div class="flex items-center justify-between gap-2">
+          <button type="button" class={arrow} disabled={!before} onClick={() => pickDay(before)} aria-label="Día con envíos anterior" title="Día con envíos anterior"><Icon name="left" size={16} /></button>
+          <span class="min-w-0 text-center text-sm font-bold first-letter:uppercase">{day ? dayLong(day) : 'Sin envíos este mes'}
+            {day && <span class="block text-xs font-medium text-ink-muted">{days[day]} {days[day] === 1 ? 'envío' : 'envíos'}</span>}</span>
+          <button type="button" class={arrow} disabled={!after} onClick={() => pickDay(after)} aria-label="Día con envíos siguiente" title="Día con envíos siguiente"><Icon name="right" size={16} /></button>
+        </div>
+      </section>
+    );
+  }
   return (
     <section class="panel flex flex-col gap-2.5 px-4 py-3.5">
-      <div class="flex items-center justify-between">
-        <span class="flex items-center gap-2 text-[13px] font-bold"><span class="inline-flex size-5 items-center justify-center rounded-full bg-brand text-[11.5px] text-white">1</span>Día de envío</span>
-        <span class="text-[13px] font-semibold text-ink-muted first-letter:uppercase">{monthLong(month)}</span>
-      </div>
+      {header}
       <div class="grid grid-cols-7 gap-1 text-center text-[11.5px] font-semibold text-ink-muted">
         {['L', 'M', 'M', 'J', 'V', 'S', 'D'].map((letter, position) => <span key={position}>{letter}</span>)}
       </div>
@@ -40,7 +75,7 @@ function DayPicker({ month, days, day }) {
           const count = days[date] || 0;
           const on = date === day;
           return (
-            <button key={date} type="button" disabled={!count} aria-pressed={on} onClick={() => setPick({ day: date, job: '', q: '' })}
+            <button key={date} type="button" disabled={!count} aria-pressed={on} onClick={() => pickDay(date)}
               aria-label={`${dayLong(date)}: ${count ? `${count} envíos` : 'sin envíos'}`}
               class={cx('flex h-[38px] flex-col items-center justify-center gap-0.5 rounded-lg text-[13px]',
                 on ? 'bg-brand font-semibold text-white' : count ? 'font-semibold text-ink hover:bg-surface-muted' : 'text-line-strong')}>
@@ -61,7 +96,7 @@ function CommList({ items, day, q, job }) {
     .sort((a, b) => b.base - a.base);
   const total = items.filter(item => item.start.slice(0, 10) === day).length;
   return (
-    <section class="panel flex flex-col overflow-hidden">
+    <section class="panel flex flex-col overflow-hidden xl:min-h-0">
       <div class="flex flex-col gap-2.5 px-4 pt-3.5 pb-2.5">
         <span class="flex items-center gap-2 text-[13px] font-bold">
           <span class="inline-flex size-5 items-center justify-center rounded-full bg-brand text-[11.5px] text-white">2</span>
@@ -74,7 +109,7 @@ function CommList({ items, day, q, job }) {
             autocomplete="off" class="field h-[38px] pl-8" />
         </label>
       </div>
-      <ul aria-label="Comunicaciones del día" class="flex max-h-[560px] flex-col gap-0.5 overflow-y-auto px-2 pb-2">
+      <ul aria-label="Comunicaciones del día" class="flex max-h-[560px] flex-col gap-0.5 overflow-y-auto px-2 pb-2 xl:max-h-none xl:min-h-0">
         {list.map(item => {
           const on = item.job === job;
           const base = item.base || 1;
@@ -131,19 +166,25 @@ function Detail({ job }) {
           <b class="text-[13px]">lo normal de los últimos 3 meses cerrados</b>
         </span>
       </div>
-      <div role="group" aria-label="Secciones de la comunicación" class="-mt-1 flex flex-wrap border-b border-line">
-        {TABS.map(([id, label, icon]) => (
-          <button key={id} type="button" aria-pressed={tab === id} onClick={() => setPick({ tab: id })}
-            class={cx('-mb-px mr-5.5 inline-flex h-[42px] items-center gap-2 border-b-2 px-1 text-sm',
-              tab === id ? 'border-brand-text font-bold text-brand-text' : 'border-transparent font-semibold text-ink-muted hover:text-ink')}>
-            <Icon name={icon} size={16} />{label}
-          </button>
-        ))}
+      {/* Un solo bloque: las pestañas arriba (la activa, con la línea de abajo) y su contenido dentro. Dentro, las
+          secciones se separan con una línea (section-rule); la primera, no, porque ya está la línea de las pestañas. */}
+      <div class="panel overflow-hidden">
+        <div role="group" aria-label="Secciones de la comunicación" class="flex flex-wrap gap-x-5.5 border-b border-line px-4">
+          {TABS.map(([id, label, icon]) => (
+            <button key={id} type="button" aria-pressed={tab === id} onClick={() => setPick({ tab: id })}
+              class={cx('-mb-px inline-flex h-[46px] items-center gap-2 border-b-2 px-1 text-sm focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand-text',
+                tab === id ? 'border-brand-text font-bold text-brand-text' : 'border-transparent font-semibold text-ink-muted hover:text-ink')}>
+              <Icon name={icon} size={16} />{label}
+            </button>
+          ))}
+        </div>
+        <div class="flex flex-col gap-5 p-4 [&>section:first-child]:border-t-0 [&>section:first-child]:pt-0">
+          {tab === 'resumen' ? <SummaryTab detail={detail} onAllMotives={() => setPick({ tab: 'motivos' })} />
+            : tab === 'motivos' ? <ParetoTab detail={detail} />
+              : tab === 'simulador' ? <SimulatorTab key={record.job} detail={detail} />
+                : <FunnelTab key={record.job} detail={detail} />}
+        </div>
       </div>
-      {tab === 'resumen' ? <SummaryTab detail={detail} onAllMotives={() => setPick({ tab: 'motivos' })} />
-        : tab === 'motivos' ? <ParetoTab detail={detail} />
-          : tab === 'simulador' ? <SimulatorTab key={record.job} detail={detail} />
-            : <FunnelTab key={record.job} detail={detail} />}
     </div>
   );
 }
@@ -165,7 +206,9 @@ export function CommunicationView() {
   const job = current.job && ofDay.some(item => item.job === current.job) ? current.job : ofDay[0]?.job || '';
   return (
     <div class="flex flex-wrap items-start gap-4">
-      <aside aria-label="Elegir comunicación" class="flex min-w-0 max-w-[380px] flex-[1_1_340px] flex-col gap-3">
+      {/* En pantallas anchas (lado a lado) la columna queda fija al hacer scroll y ocupa hasta el alto de la pantalla: el
+          calendario mantiene su tamaño y la lista se recorre por dentro. Apilado (pantallas angostas), no se fija. */}
+      <aside aria-label="Elegir comunicación" class="flex min-w-0 max-w-[380px] flex-[1_1_340px] flex-col gap-3 xl:sticky xl:top-4 xl:max-h-[calc(100vh-2rem)]">
         {data ? <>
           <DayPicker month={month} days={days} day={day} />
           <CommList items={data.items} day={day} q={current.q} job={job} />
