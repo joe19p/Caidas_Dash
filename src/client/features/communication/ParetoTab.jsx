@@ -33,15 +33,15 @@ export function ParetoTab({ detail }) {
   const current = bars[Math.min(hover, bars.length - 1)];
   const diff = current.share - current.normal;
   return (
-    <section aria-labelledby="pa-t" class="panel flex flex-col gap-3 p-5">
+    <section aria-labelledby="pa-t" class="section-rule">
       <div class="flex flex-wrap items-start justify-between gap-4">
         <div class="min-w-0 flex-[1_1_360px]">
           <h2 id="pa-t" class="text-xl font-extrabold"><span class="text-asl-ink">{n80 === 1 ? '1 motivo explica' : `${n80} motivos explican`}</span> el 80 % de lo que no se envió</h2>
           <p class="mt-1 text-[13px] text-ink-muted">De {fmtInt(detail.record.notSent)} personas no enviadas en esta comunicación. La raya negra marca el peso normal de cada motivo.</p>
         </div>
         <div aria-live="polite" class="flex min-h-[92px] flex-[0_1_300px] flex-col gap-0.5 rounded-xl bg-surface-muted px-3.5 py-3 text-[13px]">
-          <b class="text-sm">{current.name}{current.grouped ? '' : ` · ${current.origin === 'blq' ? 'bloqueo' : 'autosupresión'}`}</b>
-          <span>{fmtInt(current.count)} personas · {fmtPct(current.share)} de lo no enviado</span>
+          <b class="text-sm">{current.name}{current.grouped ? '' : ` (${current.origin === 'blq' ? 'bloqueo' : 'autosupresión'})`}</b>
+          <span>{fmtInt(current.count)} personas, el {fmtPct(current.share)} de lo no enviado</span>
           <span class="text-ink-muted">Acumulado hasta aquí: {fmtPct(current.cum)}</span>
           <span class={cx('text-[12.5px] font-semibold', Math.abs(diff) < 0.01 ? 'text-ink-muted' : diff > 0 ? 'text-danger' : 'text-success')}>
             {Math.abs(diff) < 0.01 ? `Como de costumbre (${fmtPct(current.normal)})` : `${diff > 0 ? 'Pesa más' : 'Pesa menos'} que de costumbre: ${fmtPct(current.normal)} normal`}

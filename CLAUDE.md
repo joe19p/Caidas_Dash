@@ -27,8 +27,12 @@ Funcionalidades en `docs/FUNCIONALIDADES.md`.
   `var(--color-…)`. Color nuevo: token en `@theme` y su valor en `:root[data-theme="dark"]`. Clases literales.
   Los cuatro colores de destino (entregados, rebotes, bloqueos, autosupresión) están validados para daltonismo.
 - **Modo oscuro:** todo componente nuevo debe verse bien en oscuro.
-- **Cifras:** sin `tabular-nums` (en Schibsted Grotesk parecen de máquina de escribir). Monoespaciada solo para
-  nombres de maqueta y códigos.
+- **Letra:** Schibsted Grotesk en todo. Cifras sin `tabular-nums` (en esta fuente parecen de máquina de escribir).
+  Monoespaciada solo para el JobID.
+- **Tarjetas solo para lo que se elige o se toca** (`panel`: controles, protagonistas, lista de comunicaciones, detalle
+  elegido). Las demás secciones van sobre el fondo con `section-rule` (línea arriba) o `ui/Panel.jsx`.
+- **Sin muletillas de plantilla:** nada de rótulos en mayúsculas sobre los títulos, ni textos unidos con «·», ni «→»
+  al final de enlaces o botones. Se escribe en frases: «ago 26 – oct 26, comparado con…», «Ver las reglas».
 - **Mensajes:** errores y avisos con códigos de `src/shared/messages.mjs`.
 - **Controles propios, nunca nativos:** `ui/Segmented.jsx`, interruptores con `role="switch"`, calendario propio.
 - Comentarios en español, con la densidad del archivo vecino. Alias: `@/` = `src/client`, `@shared/` = `src/shared`,

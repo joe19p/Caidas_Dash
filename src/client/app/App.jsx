@@ -37,7 +37,7 @@ function Header() {
           <span class="inline-flex size-[34px] items-center justify-center rounded-[10px] bg-white/15"><Icon name="mail" /></span>
           <div class="flex flex-col leading-tight">
             <strong class="text-base font-bold">Caídas de email</strong>
-            <span class="text-xs text-white/75">Marketing Cloud · envíos y entrega</span>
+            <span class="text-xs text-white/75">Marketing Cloud, envíos y entrega</span>
           </div>
         </div>
         <nav aria-label="Vistas" class="inline-flex h-9 overflow-hidden rounded-xl border border-white/25">

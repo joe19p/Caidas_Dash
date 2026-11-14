@@ -112,10 +112,11 @@
 @utility chrome-btn {
   @apply inline-flex h-9 items-center gap-2 rounded-xl border border-white/25 px-3 text-sm font-semibold whitespace-nowrap text-white transition-colors hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white disabled:opacity-60;
 }
+/* panel: solo para lo que se elige o se toca (controles, protagonistas, la lista). El resto va sobre el fondo, con section-rule. */
 @utility panel { @apply rounded-card border border-line bg-surface; }
+@utility section-rule { @apply flex flex-col gap-3 border-t border-line-strong pt-5; }
 @utility field {
   @apply h-9 w-full rounded-lg border border-line bg-surface px-2.5 text-sm text-ink placeholder:text-ink-muted focus-visible:border-brand-text focus-visible:outline-none;
 }
-@utility eyebrow { @apply text-xs font-bold tracking-[0.06em] text-brand-text uppercase; }
 
 /* Las cifras usan la misma letra que el resto: en esta fuente las cifras tabulares parecen de máquina de escribir. */

@@ -17,7 +17,7 @@ function Kpi({ label, value, delta, better, note }) {
   const tone = delta == null ? 'text-ink-muted' : deltaTone(delta, better);
   const text = delta == null ? note : Math.abs(delta) < 0.0005 ? 'Igual a lo normal' : `${delta > 0 ? '▲' : '▼'} ${fmtPts(Math.abs(delta)).replace('+', '')} vs lo normal`;
   return (
-    <div class="flex flex-col gap-1.5 rounded-2xl border border-line bg-surface px-3.5 py-3">
+    <div class="flex flex-col gap-1.5 border-l-2 border-line-strong py-1 pl-3.5">
       <span class="text-[12.5px] font-semibold text-ink-muted">{label}</span>
       <b class="text-[22px] leading-none font-bold">{value}</b>
       <span class={cx('text-xs font-semibold', tone)}>{text}</span>
@@ -73,14 +73,14 @@ function Motives({ detail, onAll }) {
   const scale = Math.max(0.6, Math.ceil(Math.max(...top.map(motive => Math.max(motive.share, motive.normal)), 0) * 10) / 10);
   return (
     <Panel id="m" title="Por qué no se envió"
-      actions={detail.motives.length > 8 && <button type="button" onClick={onAll} class="text-[13px] font-semibold text-brand-text hover:underline">Ver los {detail.motives.length} motivos →</button>}>
+      actions={detail.motives.length > 8 && <button type="button" onClick={onAll} class="text-[13px] font-semibold text-brand-text hover:underline">Ver los {detail.motives.length} motivos</button>}>
       {top.length ? (
         <div class="flex flex-col gap-2.5">
           {top.map(motive => {
             const diff = motive.share - motive.normal;
             return (
               <div key={motive.code} class="grid grid-cols-[minmax(0,1fr)_56px_76px] items-center gap-x-2.5 gap-y-1">
-                <span class="truncate text-[13px] font-semibold" title={`${motive.code}${motive.description ? ` · ${motive.description}` : ''}`}>{motive.name}</span>
+                <span class="truncate text-[13px] font-semibold" title={`${motive.code}${motive.description ? `: ${motive.description}` : ''}`}>{motive.name}</span>
                 <b class="text-right text-[13px]">{fmtPct(motive.share)}</b>
                 <span class={cx('text-right text-xs font-semibold', Math.abs(diff) < 0.01 ? 'text-ink-muted' : diff > 0 ? 'text-danger' : 'text-success')}>{fmtPts(diff)}</span>
                 <span class="relative h-2 rounded bg-surface-muted">

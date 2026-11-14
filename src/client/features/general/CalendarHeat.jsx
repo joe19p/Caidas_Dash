@@ -57,10 +57,10 @@ export function CalendarHeat({ calendar }) {
   const text = value => (value == null ? '' : metric === 'comms' ? String(value) : (value * 100).toFixed(1));
   const info = calendar.days[chosen];
   return (
-    <section aria-labelledby="cal-t" class="panel flex flex-col gap-3.5 p-5">
+    <section aria-labelledby="cal-t" class="section-rule gap-3.5">
       <div class="flex flex-wrap items-start justify-between gap-2.5">
         <div>
-          <h2 id="cal-t" class="text-base font-bold">Calendario de envíos · {monthRange(calendar.from, calendar.to)}</h2>
+          <h2 id="cal-t" class="text-base font-bold">Calendario de envíos: {monthRange(calendar.from, calendar.to)}</h2>
           <p class="mt-0.5 text-[12.5px] text-ink-muted">Últimos 3 meses cerrados. Elige un día para ver su resumen e ir a sus comunicaciones.</p>
         </div>
         <Segmented label="Qué mostrar en el calendario" value={metric} onChange={setMetric}
@@ -103,9 +103,9 @@ export function CalendarHeat({ calendar }) {
             <div aria-live="polite" class="flex flex-col gap-1 rounded-xl bg-surface-muted px-4 py-3.5">
               <span class="text-[12.5px] font-semibold text-ink-muted first-letter:uppercase">{dayLong(chosen)}</span>
               <span class="flex items-baseline gap-2"><b class="text-[28px] font-extrabold">{info.comms}</b><span class="text-[13px] text-ink-muted">comunicaciones</span></span>
-              <span class="text-[13px]">{info.sends} envíos · apertura mediana <b>{fmtPct(info.or)}</b></span>
+              <span class="text-[13px]">{info.sends} envíos, con apertura mediana de <b>{fmtPct(info.or)}</b></span>
               <button type="button" class="mt-1.5 self-start text-[13px] font-semibold text-brand-text hover:underline" onClick={() => openCommunication({ day: chosen })}>
-                Ver las comunicaciones de este día →
+                Ver las comunicaciones de este día
               </button>
             </div>
           )}

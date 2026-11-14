@@ -1,10 +1,11 @@
-// Tarjeta con título, subtítulo opcional y acciones a la derecha.
+// Sección con título, subtítulo opcional y acciones a la derecha. Va sobre el fondo, separada por una línea: las
+// tarjetas quedan para lo que se elige o se toca.
 import { cx } from '@/lib/format.mjs';
 
 export function Panel({ title, subtitle, actions, children, class: className = '', id }) {
   const titleId = id ? `${id}-t` : undefined;
   return (
-    <section aria-labelledby={titleId} class={cx('panel flex flex-col gap-3 p-5', className)}>
+    <section aria-labelledby={titleId} class={cx('section-rule', className)}>
       {(title || actions) && (
         <div class="flex flex-wrap items-start justify-between gap-2.5">
           <div class="min-w-0">

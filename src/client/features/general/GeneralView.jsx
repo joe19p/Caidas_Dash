@@ -44,7 +44,7 @@ function HeroComms({ period, history, months, active, onPick }) {
       <span class="text-[13px] font-bold text-ink-muted">Comunicaciones distintas enviadas</span>
       <span class="flex flex-wrap items-baseline gap-x-3.5 gap-y-1.5">
         <b class="text-[52px] leading-none font-extrabold tracking-tight">{fmtInt(period.kpis.comms)}</b>
-        <span class="text-sm text-ink-muted">≈ <b class="text-ink">{fmtInt(period.kpis.comms / months)}</b> por mes · {fmtInt(period.kpis.sends)} envíos</span>
+        <span class="text-sm text-ink-muted">unas <b class="text-ink">{fmtInt(period.kpis.comms / months)}</b> por mes, en {fmtInt(period.kpis.sends)} envíos</span>
       </span>
       <span class={cx('text-[13px] font-semibold', delta.tone)}>{delta.text}</span>
       <svg role="img" aria-label="Comunicaciones por mes, últimos 24 meses" viewBox="0 0 520 110" class="mt-1 block h-auto w-full">
@@ -195,8 +195,8 @@ function ReviewPanel({ review }) {
             return (
               <button key={item.job} type="button" onClick={() => openCommunication({ day: item.start.slice(0, 10), job: item.job })}
                 class="flex flex-col gap-1.5 rounded-xl border border-line px-3.5 py-3 text-left hover:bg-surface-muted focus-visible:outline-2 focus-visible:outline-brand-text">
-                <span class="truncate font-mono text-xs" title={item.name}>{item.name}</span>
-                <span class="text-xs text-ink-muted">{dayShort(item.start)} · {item.family}</span>
+                <span class="truncate text-[13px] font-semibold" title={item.name}>{item.name}</span>
+                <span class="text-xs text-ink-muted">{dayShort(item.start)}, {item.family}</span>
                 <span class="flex items-baseline gap-2"><b class="text-xl">{fmtPct(item.value, digits)}</b><span class="text-[12.5px] text-ink-muted">{metric}</span></span>
                 <span class="text-xs font-semibold text-danger">{fmtPts(Math.abs(item.value - item.familyValue), digits).replace('+', '')} {side} su familia ({fmtPct(item.familyValue, digits)})</span>
               </button>
@@ -223,7 +223,7 @@ export function GeneralView() {
       <div class="panel flex flex-wrap items-center gap-x-3.5 gap-y-2.5 px-4 py-2.5">
         <Segmented label="Periodo" value={months} onChange={setMonths} options={PERIODS} />
         <span class="text-[13px] text-ink-muted">
-          {monthRange(period.from, period.to)} · comparado con {monthRange(period.prevFrom, period.prevTo)} · el mes en curso entra al cerrar
+          {monthRange(period.from, period.to)}, comparado con {monthRange(period.prevFrom, period.prevTo)}. El mes en curso entra al cerrar.
         </span>
         <span class="flex-1" />
         <span class="text-[13px] font-semibold text-ink-muted">Promediar</span>
@@ -249,7 +249,7 @@ export function GeneralView() {
         ))}
       </section>
 
-      <section class="panel px-5.5 py-4.5"><Timeline history={data.history} metric={metric} mode={mode} months={months} /></section>
+      <section class="section-rule"><Timeline history={data.history} metric={metric} mode={mode} months={months} /></section>
 
       <CalendarHeat calendar={data.calendar} />
 

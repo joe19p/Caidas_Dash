@@ -81,7 +81,7 @@ function CommList({ items, day, q, job }) {
       <div class="flex flex-col gap-2.5 px-4 pt-3.5 pb-2.5">
         <span class="flex items-center gap-2 text-[13px] font-bold">
           <span class="inline-flex size-5 items-center justify-center rounded-full bg-brand text-[11.5px] text-white">2</span>
-          Comunicación <span class="font-medium text-ink-muted">· {list.length} de {total}</span>
+          Comunicación <span class="font-medium text-ink-muted">{list.length} de {total}</span>
         </span>
         <label class="relative flex items-center">
           <span class="sr-only">Buscar comunicación</span>
@@ -100,7 +100,7 @@ function CommList({ items, day, q, job }) {
               <button type="button" onClick={() => setPick({ job: item.job })}
                 class={cx('flex w-full flex-col gap-1.5 rounded-[10px] p-2.5 text-left hover:bg-surface-muted', on && 'bg-brand-soft ring-1 ring-brand-text hover:bg-brand-soft')}>
                 <span class="flex items-baseline justify-between gap-2">
-                  <span class="truncate font-mono text-xs" title={item.name}>{item.name}</span>
+                  <span class="truncate text-[13px] font-semibold" title={item.name}>{item.name}</span>
                   <span class="flex-none text-xs text-ink-muted">{hourOf(item.start)}</span>
                 </span>
                 <span class="flex h-1.5 gap-0.5" aria-hidden="true">
@@ -136,10 +136,10 @@ function Detail({ job }) {
     <div class="flex flex-col gap-4">
       <div class="panel flex flex-wrap items-center gap-x-6 gap-y-2.5 px-5.5 py-4.5">
         <div class="flex min-w-0 flex-[1_1_360px] flex-col gap-1">
-          <span class="eyebrow">{record.family}</span>
-          <h1 class="font-mono text-xl font-medium break-all">{record.name}</h1>
+          <span class="text-[13px] font-semibold text-brand-text">Familia {record.family}</span>
+          <h1 class="text-xl font-bold break-all">{record.name}</h1>
           <span class="text-[13px] text-ink-muted">
-            {dayLong(record.start)} · {hourOf(record.start)}{record.end ? ` → ${hourOf(record.end)}` : ''} · JobID {record.job}{record.client ? ` · ${record.client}` : ''}
+            <span class="inline-block first-letter:uppercase">{dayLong(record.start)}</span>, de {hourOf(record.start)}{record.end ? ` a ${hourOf(record.end)}` : ''}. JobID <span class="font-mono">{record.job}</span>{record.client ? `, ${record.client}` : ''}.
           </span>
         </div>
         <span class="flex flex-col items-end gap-0.5 text-right">

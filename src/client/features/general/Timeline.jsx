@@ -53,11 +53,11 @@ export function Timeline({ history, metric, mode, months }) {
     <div class="flex flex-col gap-2.5">
       <div class="flex flex-wrap items-start justify-between gap-2.5">
         <div>
-          <h2 class="text-base font-bold">{def.title} · últimos 24 meses</h2>
+          <h2 class="text-base font-bold">{def.title} en los últimos 24 meses</h2>
           <p class="mt-0.5 text-[12.5px] text-ink-muted">{def.sub}</p>
         </div>
         <div aria-live="polite" class="flex flex-col items-end gap-0.5 text-[13px]">
-          <span class="text-ink-muted first-letter:uppercase">{monthLong(current.month)} · {current.comms} comunicaciones</span>
+          <span class="text-ink-muted first-letter:uppercase">{monthLong(current.month)}: {current.comms} comunicaciones</span>
           <span><b class="text-lg">{formatValue(metric, current.v)}</b>
             {band && current.v != null && <span class="text-ink-muted"> (mitad central {formatValue(metric, current.lo)} – {formatValue(metric, current.hi)})</span>}
           </span>

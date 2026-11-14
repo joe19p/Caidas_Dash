@@ -47,10 +47,10 @@ export function SimulatorTab({ detail }) {
   const risk = RISK[simRisk(result.bounceRateSim)];
   const bounceDelta = result.bounceRateSim - result.bounceRate;
   return (
-    <section aria-labelledby="si-t" class="panel flex flex-col gap-3.5 p-5">
+    <section aria-labelledby="si-t" class="section-rule gap-3.5">
       <div>
-        <span class="eyebrow">Simulador · estimación</span>
-        <h2 id="si-t" class="mt-0.5 text-xl font-extrabold">¿Qué pasaría si esta comunicación no aplicara una lista?</h2>
+        <h2 id="si-t" class="text-xl font-extrabold">¿Qué pasaría si esta comunicación no aplicara una lista?</h2>
+        <p class="mt-1 text-[13px] text-ink-muted">Es una estimación: apaga una lista y mira el efecto. Los supuestos están al final.</p>
       </div>
       {!lists.length ? <p class="text-[13px] text-ink-muted">Esta comunicación no tiene listas de autosupresión aplicadas.</p> : (
         <div class="flex flex-wrap items-start gap-7">
