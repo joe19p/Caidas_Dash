@@ -62,6 +62,11 @@ export function callServer(method, ...args) {
   return rawCall(method, ...args).finally(() => { waitingCalls.value -= 1; });
 }
 
+/** Llama al servidor sin la barra de carga (precargas en segundo plano). */
+export function callServerQuietly(method, ...args) {
+  return rawCall(method, ...args);
+}
+
 function rawCall(method, ...args) {
   const run = globalThis.google?.script?.run;
   if (run) {

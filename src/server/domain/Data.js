@@ -14,6 +14,14 @@ function bumpDataVersion_() {
   return next;
 }
 
+/**
+ * Clave de los datos para la caché del navegador: versión y día, como las claves de la caché del servidor (los
+ * periodos y «lo normal» cambian con la fecha). Si no coincide con la guardada, el navegador pide todo de nuevo.
+ */
+function clientCacheKey_() {
+  return `v${dataVersion_()}:${isoDate_()}`;
+}
+
 /** Catálogo de motivos de ASL_Catalog y NotSent_Catalog. */
 function motiveCatalog_() {
   return sfmcCatalog(readTable_(SHEETS.ASL_CATALOG, true).rows, readTable_(SHEETS.NOT_SENT_CATALOG, true).rows);

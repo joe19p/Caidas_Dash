@@ -9,6 +9,7 @@ function overviewData_() {
     const records = loadRecords_();
     const overview = buildOverview(records, motiveInfoFn_(motiveCatalog_()), isoDate_());
     overview.available = metricAvailable(records);
+    overview.cacheKey = clientCacheKey_();
     return overview;
   });
 }

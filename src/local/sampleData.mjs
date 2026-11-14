@@ -68,24 +68,37 @@ const usDateTime = (date, minutes) => {
   return `${d.getUTCMonth() + 1}/${d.getUTCDate()}/${d.getUTCFullYear()} ${h12}:${String(d.getUTCMinutes()).padStart(2, '0')}:${String(d.getUTCSeconds()).padStart(2, '0')} ${hour < 12 ? 'AM' : 'PM'}`;
 };
 
+// Día de carga: el último día hábil antes de hoy tiene STRESS_DAY_SENDS envíos, para probar listas largas en
+// «Por comunicación». Sus nombres llevan un segmento (_SEG001…) para que no se repitan.
+export const STRESS_DAY_SENDS = 500;
+
+/** Último día hábil (lunes a viernes) antes de `today`, a medianoche UTC. */
+export function stressDay(today = new Date()) {
+  let day = Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()) - 864e5;
+  while ([0, 6].includes(new Date(day).getUTCDay())) day -= 864e5;
+  return day;
+}
+
 /** Filas de EmailSummary_NotSent desde el primer día de hace 25 meses hasta hoy (incluye el mes en curso). */
 export function sampleRows(today = new Date()) {
   const rnd = random(20261114);
   const rows = [SAMPLE_HEADERS];
   const start = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() - 25, 1));
   const end = Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate());
+  const heavyDay = stressDay(today);
   let job = 3100000;
   for (let day = start; day.getTime() <= end; day = new Date(day.getTime() + 864e5)) {
     const weekday = day.getUTCDay();
     const month = day.getUTCMonth();
     const cyberSeason = month === 6 || month === 10;
-    const count = weekday === 0 ? Math.floor(rnd() * 2) : weekday === 6 ? 2 + Math.floor(rnd() * 3) : 6 + Math.floor(rnd() * 8) + (cyberSeason ? 3 : 0);
+    const heavy = day.getTime() === heavyDay;
+    const count = heavy ? STRESS_DAY_SENDS : weekday === 0 ? Math.floor(rnd() * 2) : weekday === 6 ? 2 + Math.floor(rnd() * 3) : 6 + Math.floor(rnd() * 8) + (cyberSeason ? 3 : 0);
     const monthsAgo = (today.getUTCFullYear() - day.getUTCFullYear()) * 12 + today.getUTCMonth() - month;
     const drift = 1 - monthsAgo / 25;
     for (let index = 0; index < count; index++) {
       const family = FAMILIES[cyberSeason && rnd() < 0.35 ? 0 : 1 + Math.floor(rnd() * (FAMILIES.length - 1))];
       const suffix = family[1][Math.floor(rnd() * family[1].length)];
-      const name = `${day.getUTCFullYear()}${String(month + 1).padStart(2, '0')}${String(day.getUTCDate()).padStart(2, '0')}_${family[0]}_${suffix}`;
+      const name = `${day.getUTCFullYear()}${String(month + 1).padStart(2, '0')}${String(day.getUTCDate()).padStart(2, '0')}_${family[0]}_${suffix}${heavy ? `_SEG${String(index + 1).padStart(3, '0')}` : ''}`;
       const between = ([low, high]) => low + rnd() * (high - low);
       const base = Math.round(between(family[5]));
       const notSent = Math.round(base * Math.min(0.95, between(family[2]) + drift * 0.03));

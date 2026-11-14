@@ -31,7 +31,7 @@
 
 Pestañas:
 
-- **Funnel** (la que abre por defecto): el «Funnel de procesamiento de audiencia» del reporte original, en pequeño.
+- **Funnel** (la que abre la primera vez; después, la última usada): el «Funnel de procesamiento de audiencia» del reporte original, en pequeño.
   Cuatro niveles (origen, procesamiento, cuatro pilares, engagement y desgloses) unidos por flechas del color del
   destino; en pantallas angostas se apilan. Debajo, la tabla «Mapeo de motivos de caída» (volumen, % sobre caídas,
   % de la audiencia y descripción), ordenable.
@@ -41,3 +41,14 @@ Pestañas:
 - **Motivos de no envío:** Pareto con el acumulado, cuántos motivos explican el 80 % y el peso normal de cada uno.
 - **Simulador:** apagar listas de autosupresión y ver personas que recibirían, aperturas estimadas y tasa de rebote.
   Supuestos en `src/shared/simulator.mjs`; las listas legales o de reputación y los bloqueos de SFMC no se pueden quitar.
+
+## Rapidez y datos guardados
+
+- **En el servidor:** lo calculado queda en caché (CacheService, 6 horas) con la versión de los datos y el día en la
+  clave. La versión sube con «Actualizar datos» y cada vez que alguien cambia la hoja.
+- **En el navegador:** la vista general, los meses y cada comunicación abierta quedan en IndexedDB
+  (`src/client/services/localCache.mjs`) con la misma clave (`getCacheKey`). Volver a abrir la app, a un mes o a una
+  comunicación no espera al servidor mientras la clave no cambie; si cambia, lo anterior se borra. Si el navegador
+  bloquea IndexedDB, todo funciona igual pidiéndolo al servidor.
+- **Precarga:** con la vista general lista, el mes más reciente se pide en segundo plano para «Por comunicación».
+- **localStorage** solo guarda preferencias: el tema y la última pestaña de la comunicación.

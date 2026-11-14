@@ -73,6 +73,16 @@ test('refreshData y onDataChange dejan la caché sin uso', () => {
   assert.equal(Number(props.get('APP_DATA_VERSION')), Number(before) + 2);
 });
 
+test('la vista general lleva la clave de los datos para el navegador, y cambia al actualizar', () => {
+  const { context } = loadGas({ spreadsheet: sheet([send({ job: 1, start: '10/5/2026 9:00:00 AM' })]) });
+  const key = context.getCacheKey();
+  assert.match(key, /^v\d+:\d{4}-\d{2}-\d{2}$/);
+  assert.equal(context.getOverview().cacheKey, key);
+  const refreshed = context.refreshData();
+  assert.notEqual(refreshed.cacheKey, key);
+  assert.equal(context.getCacheKey(), refreshed.cacheKey);
+});
+
 test('doGet incluye la vista general en la página', () => {
   const { context } = loadGas({ spreadsheet: sheet([send({ job: 1 })]) });
   const output = context.doGet();

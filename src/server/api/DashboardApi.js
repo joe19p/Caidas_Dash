@@ -12,6 +12,11 @@ function getCommunication(job) {
   return runApi_(() => communicationData_(job));
 }
 
+/** Clave de los datos (versión y día): el navegador la compara con la suya antes de usar lo guardado. */
+function getCacheKey() {
+  return runApi_(() => clientCacheKey_());
+}
+
 /** «Actualizar datos»: deja la caché sin uso y devuelve la vista general recién calculada. */
 function refreshData() {
   return runApi_(() => {

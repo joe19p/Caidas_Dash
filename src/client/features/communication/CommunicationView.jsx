@@ -20,7 +20,9 @@ function useLoad(key, load) {
   useEffect(() => {
     if (!key) return undefined;
     let alive = true;
-    setState(previous => ({ status: 'loading', data: previous.key === key ? previous.data : null, error: '', key }));
+    // Mientras carga se conserva lo anterior del mismo mes o envío (p. ej. tras «Actualizar datos»), sin parpadeo.
+    const same = (a, b) => Boolean(a && b) && a.split('|')[1] === b.split('|')[1];
+    setState(previous => ({ status: 'loading', data: same(previous.key, key) ? previous.data : null, error: '', key }));
     load().then(data => { if (alive) setState({ status: 'ready', data, error: '', key }); })
       .catch(error => { if (alive) setState({ status: 'error', data: null, error: error.text || error.message, key }); });
     return () => { alive = false; };
@@ -72,6 +74,12 @@ function DayPicker({ month, months, days, day }) {
   );
 }
 
+/** Nombre de maqueta que puede pasar de línea después de cada «_» (los nombres no tienen espacios). */
+function BreakableName({ name }) {
+  const parts = name.split('_');
+  return parts.map((part, index) => (index < parts.length - 1 ? <>{part}_<wbr /></> : part));
+}
+
 function CommList({ items, day, q, job }) {
   const query = q.trim().toLowerCase();
   const list = items.filter(item => item.start.slice(0, 10) === day && (!query || item.name.toLowerCase().includes(query)))
@@ -91,17 +99,18 @@ function CommList({ items, day, q, job }) {
             autocomplete="off" class="field h-[38px] pl-8" />
         </label>
       </div>
-      <ul role="listbox" aria-label="Comunicaciones del día" class="flex max-h-[560px] flex-col gap-0.5 overflow-y-auto px-2 pb-2">
+      <ul aria-label="Comunicaciones del día" class="flex max-h-[560px] flex-col gap-0.5 overflow-y-auto px-2 pb-2">
         {list.map(item => {
           const on = item.job === job;
           const base = item.base || 1;
           const delivered = Math.max(0, item.deliv);
           return (
-            <li key={item.job} role="option" aria-selected={on}>
-              <button type="button" onClick={() => setPick({ job: item.job })}
+            <li key={item.job}>
+              <button type="button" aria-current={on ? 'true' : undefined} onClick={() => setPick({ job: item.job })}
                 class={cx('flex w-full flex-col gap-1.5 rounded-[10px] p-2.5 text-left hover:bg-surface-muted', on && 'bg-brand-soft ring-1 ring-brand-text hover:bg-brand-soft')}>
-                <span class="flex items-baseline justify-between gap-2">
-                  <span class="truncate text-[13px] font-semibold" title={item.name}>{item.name}</span>
+                <span class="flex items-start justify-between gap-2">
+                  {/* Dos líneas, cortando en los «_»: el final del nombre (segmento, versión) distingue un envío de otro. */}
+                  <span class="line-clamp-2 min-w-0 text-[13px] font-semibold wrap-break-word" title={item.name}><BreakableName name={item.name} /></span>
                   <span class="flex-none text-xs text-ink-muted">{hourOf(item.start)}</span>
                 </span>
                 <span class="flex h-1.5 gap-0.5" aria-hidden="true">
@@ -126,8 +135,11 @@ function CommList({ items, day, q, job }) {
 
 const TABS = [['funnel', 'Funnel', 'funnel'], ['resumen', 'Resumen', 'grid'], ['motivos', 'Motivos de no envío', 'bars'], ['simulador', 'Simulador', 'sliders']];
 
+// La clave de los datos entra en la de cada carga: tras «Actualizar datos» el mes y el detalle se piden de nuevo.
+const dataKey = () => overview.value.data?.cacheKey || '';
+
 function Detail({ job }) {
-  const [state, retry] = useLoad(job, () => api.getCommunication(job));
+  const [state, retry] = useLoad(job && `${dataKey()}|${job}`, () => api.getCommunication(job));
   const tab = pick.value.tab;
   if (state.status === 'loading' && !state.data) return <div class="flex flex-col gap-4"><Skeleton class="h-24" /><Skeleton class="h-28" /><Skeleton class="h-72" /></div>;
   if (state.status === 'error') return <ErrorState text={state.error} onRetry={retry} />;
@@ -170,7 +182,7 @@ export function CommunicationView() {
   const months = available?.months || [];
   const current = pick.value;
   const month = current.month && months.includes(current.month) ? current.month : months[0];
-  const [state, retry] = useLoad(month, () => api.getMonth(month));
+  const [state, retry] = useLoad(month && `${dataKey()}|${month}`, () => api.getMonth(month));
   if (overview.value.status === 'loading') return <Skeleton class="h-96" />;
   if (!months.length) return <EmptyState title="Todavía no hay envíos" text="Cuando la hoja tenga envíos, aquí se eligen por día." />;
   if (state.status === 'error') return <ErrorState text={state.error} onRetry={retry} />;

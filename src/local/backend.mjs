@@ -7,9 +7,20 @@ import { sampleSpreadsheet } from './sampleData.mjs';
 
 export const LOCAL_BACKEND_MARK = 'app_local_backend_cd1';
 
+/** Huella numérica (FNV-1a) de un texto. */
+function fingerprint(text) {
+  let hash = 2166136261;
+  for (let index = 0; index < text.length; index++) hash = Math.imul(hash ^ text.charCodeAt(index), 16777619);
+  return hash >>> 0;
+}
+
 export function createLocalBackend() {
-  const fake = createFakeSpreadsheet(sampleSpreadsheet(new Date()));
-  const gas = createGasGlobals({ spreadsheet: fake, activeEmail: 'maria.quispe@local.test' });
+  const sample = sampleSpreadsheet(new Date());
+  const fake = createFakeSpreadsheet(sample);
+  // La versión de los datos sale de los datos de ejemplo: si cambian (otro día, otro generador), la caché del
+  // navegador deja de valer; si son los mismos, se aprovecha entre recargas como en Apps Script.
+  const properties = { APP_DATA_VERSION: String(fingerprint(JSON.stringify(sample))) };
+  const gas = createGasGlobals({ spreadsheet: fake, activeEmail: 'maria.quispe@local.test', properties });
   const names = Object.keys(gas.globals);
   // Code.gs declara funciones globales: un eval dentro del mismo ámbito las expone por nombre.
   const resolve = new Function(...names, `${serverCode}\nreturn function (name) { return eval(name); };`)(...names.map(name => gas.globals[name]));
