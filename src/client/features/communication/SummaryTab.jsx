@@ -20,7 +20,7 @@ function Kpi({ label, value, delta, better, note, order = 0, metric }) {
   const tone = delta == null ? 'text-ink-muted' : deltaTone(delta, better);
   const text = delta == null ? note : Math.abs(delta) < 0.0005 ? 'Igual a lo normal' : `${delta > 0 ? '▲' : '▼'} ${fmtPts(Math.abs(delta)).replace('+', '')} vs lo normal`;
   return (
-    <div class="anim-rise flex flex-col gap-1.5 border-l-2 border-line-strong py-1 pl-3.5" style={{ '--delay': `${order * 60}ms` }}>
+    <div class="anim-rise flex flex-col gap-1.5 border-l-2 border-line-strong py-1 pl-3.5" style={{ '--delay': `${order * 35}ms` }}>
       <span class="flex items-center gap-2 text-[12.5px] font-semibold text-ink-muted"><MetricIcon metric={metric} size="size-6" iconSize={14} />{label}</span>
       <b class="text-[22px] leading-none font-bold">{value}</b>
       <span class={cx('text-xs font-semibold', tone)}>{text}</span>
@@ -45,7 +45,7 @@ function Waffle({ detail }) {
           onMouseLeave={() => setFocus(null)}
           class="grid flex-none grid-cols-[repeat(10,24px)] gap-1.5">
           {cells.map(([key, color], index) => (
-            <span key={index} data-group={key} style={{ '--delay': `${200 + index * 7}ms` }}
+            <span key={index} data-group={key} style={{ '--delay': `${80 + index * 3}ms` }}
               class={cx('anim-pop size-6 rounded-md transition-opacity duration-150', color, focus && focus !== key && 'opacity-20')} />
           ))}
         </div>
@@ -94,7 +94,7 @@ function Motives({ detail, onAll }) {
                 <span class={cx('text-right text-xs font-semibold', Math.abs(diff) < 0.01 ? 'text-ink-muted' : diff > 0 ? 'text-danger' : 'text-success')}>{fmtPts(diff)}</span>
                 <span class="relative h-2 rounded bg-surface-muted">
                   <span class={cx('anim-grow-x absolute inset-y-0 left-0 rounded', motive.origin === 'blq' ? 'bg-blq' : 'bg-asl')}
-                    style={{ width: `${(motive.share / scale) * 100}%`, '--delay': `${300 + index * 70}ms` }} />
+                    style={{ width: `${(motive.share / scale) * 100}%`, '--delay': `${120 + index * 35}ms` }} />
                   <span title="Lo normal" class="absolute -inset-y-[3px] w-0.5 rounded-sm bg-ink" style={{ left: `${(motive.normal / scale) * 100}%` }} />
                 </span>
                 <span class="col-span-2 text-right text-xs text-ink-muted">{fmtInt(motive.count)}</span>
@@ -150,7 +150,7 @@ export function SummaryTab({ detail, onAllMotives }) {
               <Row label="Rebotes" strong swatch="bg-reb" value={fmtInt(record.bounces)} note={`${fmtPct(rates.bounce, 2)} de enviados`} />
             </div>
             <span class="border-t border-line pt-1.5 text-xs font-semibold text-ink-muted">Tipo de rebote</span>
-            <div class="anim-grow-x flex h-3 gap-0.5" style={{ '--delay': '400ms' }} aria-hidden="true">
+            <div class="anim-grow-x flex h-3 gap-0.5" style={{ '--delay': '150ms' }} aria-hidden="true">
               {bounceParts.map(([name, value], index) => (
                 <span key={name} class={cx('bg-reb', index === 0 ? 'rounded-l' : '', index === 2 ? 'flex-1 rounded-r opacity-30' : index === 1 ? 'opacity-60' : '')}
                   style={index < 2 ? { width: `${record.bounces ? (value / record.bounces) * 100 : 0}%` } : undefined} />
