@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { metricSummary, metricShiftMonth, metricMonthRange, metricLastClosed, metricMotiveShares, buildOverview, buildPeriod, buildMonth, buildDetail, buildSearch, buildCompare, metricSearchTerms } from '../../../src/shared/metrics.mjs';
+import { metricSummary, metricShiftMonth, metricMonthRange, metricLastClosed, metricMotiveShares, metricDrops, buildOverview, buildPeriod, buildMonth, buildDetail, buildSearch, buildCompare, metricSearchTerms } from '../../../src/shared/metrics.mjs';
 import { sfmcMotiveInfo } from '../../../src/shared/sfmc.mjs';
 
 const info = code => sfmcMotiveInfo(code, {});
@@ -41,6 +41,20 @@ test('el peso de los motivos se calcula por comunicación y por volumen', () => 
   assert.equal(shares.B.vol, 0.9);
 });
 
+test('metricDrops: quiénes no reciben, por destino y ponderado por volumen', () => {
+  // Held es un bloqueo de Marketing Cloud; ASL_NO_OPENERS, autosupresión del CRM.
+  const drops = metricDrops([
+    rec(1, '2026-10-01T09:00:00'),
+    rec(2, '2026-10-02T09:00:00', { base: 3000, notSent: 0, motives: {}, bounces: 30 })
+  ], info);
+  const near = (actual, expected) => assert.ok(Math.abs(actual - expected) < 1e-12, `${actual} ≠ ${expected}`);
+  near(drops.asl, 400 / 4000);
+  near(drops.blq, 200 / 4000);
+  near(drops.reb, 40 / 4000);
+  near(drops.total, 640 / 4000);
+  assert.equal(metricDrops([], info), null);
+});
+
 test('buildOverview: periodos hasta el mes en curso, comparados con los mismos días, sin sumar personas', () => {
   const records = [
     rec(1, '2026-10-05T09:00:00', { name: 'A' }), rec(2, '2026-10-06T09:00:00', { name: 'A' }), rec(3, '2026-09-10T09:00:00', { name: 'B' }),
@@ -65,6 +79,12 @@ test('buildOverview: periodos hasta el mes en curso, comparados con los mismos d
   assert.deepEqual(Object.keys(quarter.calendar.days).sort(), ['2026-09-10', '2026-10-05', '2026-10-06', '2026-10-20', '2026-11-02']);
   assert.equal(quarter.rules[0].name, 'No abren correos');
   assert.equal(quarter.families[0].name, 'Promociones');
+  assert.equal(quarter.families[0].sends, 5);
+  assert.equal(quarter.families[0].drop.com, 0.6);
+  assert.equal(quarter.drops.total, 0.61);
+  assert.equal(quarter.prevDrops.total, 0.61);
+  assert.equal(overview.history[24].drops.asl, 0.4);
+  assert.equal(overview.history[0].drops, null, 'Un mes sin envíos no tiene caídas.');
   // El histórico no cuenta el mes en curso.
   assert.equal(overview.historic.sends, 6);
   assert.equal(overview.total, 7);

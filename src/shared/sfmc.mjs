@@ -122,6 +122,34 @@ function sfmcMotiveCode(header) {
   return String(header).replace(/#\d+$/, '');
 }
 
+/** Cabecera sin espacios, signos, tildes ni mayúsculas: «Open Rate», «open_rate» y «OpenRate» dan lo mismo. */
+function sfmcHeaderKey(header) {
+  return String(header == null ? '' : header).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+/**
+ * Compara la cabecera de una pestaña con la esperada. canonical(cabecera) devuelve el nombre esperado si es la misma
+ * columna escrita de otra forma (así «Open Rate» se lee como OpenRate y no como un motivo); missing, las que no están;
+ * renamed, las reconocidas con otro nombre ({ expected, found }).
+ */
+function sfmcHeaderCheck(headers, expected) {
+  const byKey = {};
+  (expected || []).forEach(name => { byKey[sfmcHeaderKey(name)] = name; });
+  const found = {};
+  const renamed = [];
+  (headers || []).forEach(header => {
+    const name = byKey[sfmcHeaderKey(header)];
+    if (!name || found[name]) return;
+    found[name] = true;
+    if (String(header).trim() !== name) renamed.push({ expected: name, found: String(header).trim() });
+  });
+  return {
+    canonical: header => byKey[sfmcHeaderKey(header)] || header,
+    missing: (expected || []).filter(name => !found[name]),
+    renamed
+  };
+}
+
 /** Qué columnas de la pestaña son motivos: todas las que no son métricas, tasas ni vacías. */
 function sfmcMotiveHeaders(headers) {
   return (headers || []).filter(header => {
@@ -161,5 +189,6 @@ function sfmcRecord(row, motiveHeaders) {
 
 export {
   SFMC_FIELDS, SFMC_IGNORED, SFMC_BLOCK_REASONS, SFMC_MOTIVE_NAMES, SFMC_FAMILIES,
-  sfmcCount, sfmcDateTime, sfmcFamily, sfmcCatalog, sfmcMotiveInfo, sfmcMotiveCode, sfmcMotiveHeaders, sfmcRecord
+  sfmcCount, sfmcDateTime, sfmcFamily, sfmcCatalog, sfmcMotiveInfo, sfmcMotiveCode, sfmcMotiveHeaders, sfmcRecord,
+  sfmcHeaderKey, sfmcHeaderCheck
 };

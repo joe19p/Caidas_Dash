@@ -53,8 +53,18 @@ const CACHED_OVERVIEW = 'overview';
 removeStored('overview_v1');
 
 /** Vista general recién llegada del servidor: se muestra, se guarda y se precarga el mes más reciente. */
+let warnedHeaders = '';
+/** Columnas que faltan en la hoja: quedan en la actividad (una vez por versión de los datos). */
+function warnHeaders(data) {
+  const issues = data.headerIssues || [];
+  if (!issues.length || warnedHeaders === data.cacheKey) return;
+  warnedHeaders = data.cacheKey;
+  issues.forEach(issue => logActivity(messageText('HEADERS_MISSING', { sheet: issue.sheet, columns: issue.missing.join(', ') }), 'warning'));
+}
+
 function setOverview(data) {
   overview.value = { status: 'ready', data, error: '', stale: false };
+  warnHeaders(data);
   sheetChanged.value = false;
   watchSheet();
   localCache.setDataKey(data.cacheKey).then(() => localCache.put(CACHED_OVERVIEW, data));
@@ -105,6 +115,7 @@ export async function loadOverview() {
     if (key && key === stored.dataKey) {
       // Vigente: no se vuelve a dibujar ni a guardar; solo se fija la clave para leer meses y comunicaciones.
       await localCache.setDataKey(key);
+      warnHeaders(stored.data);
       prefetchLatestMonth(stored.data);
       watchSheet();
       return;

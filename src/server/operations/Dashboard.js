@@ -12,8 +12,16 @@ function overviewData_() {
     overview.cacheKey = clientCacheKey_();
     // Cuándo se leyó la hoja (lo calculado queda en caché): la barra de estado lo muestra.
     overview.readAt = isoDateTime_();
+    // Columnas que faltan en la hoja: sus cifras se leerían como cero sin avisar.
+    overview.headerIssues = headerIssues_();
     return overview;
   });
+}
+
+/** Columnas que faltan, por versión de los datos: la cabecera solo se vuelve a leer cuando cambia la hoja. */
+function headerIssues_() {
+  return cachedJson_(`headers:v${dataVersion_()}`, () => sheetHeaderIssues_()
+    .filter(issue => issue.missing.length).map(issue => ({ sheet: issue.sheet, missing: issue.missing })));
 }
 
 const PERIOD_MAX_MONTHS = 36;

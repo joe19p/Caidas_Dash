@@ -9,6 +9,7 @@ import {
 import { commMonth, periodRange } from '@/state/period.mjs';
 import { selected } from '@/state/search.mjs';
 import { Icon } from '@/ui/Icon.jsx';
+import { messageText } from '@shared/messages.mjs';
 import { Popover } from '@/ui/Popover.jsx';
 
 const isLocal = () => import.meta.env.DEV && !globalThis.google?.script?.run;
@@ -24,6 +25,13 @@ function dataStatus() {
   if (state.status === 'loading') return { text: 'Cargando los datos…', tone: 'muted', busy: true };
   if (state.status === 'error') return { text: 'No se pudo leer la hoja', tone: 'bad', title: state.error };
   if (sheetChanged.value) return { text: 'La hoja cambió: actualiza para verlo', tone: 'warn', title: 'Alguien cambió la hoja después de cargar los datos.' };
+  const issues = state.data?.headerIssues || [];
+  if (issues.length && !state.stale) {
+    return {
+      text: 'Faltan columnas en la hoja', tone: 'warn',
+      title: issues.map(issue => messageText('HEADERS_MISSING', { sheet: issue.sheet, columns: issue.missing.join(', ') })).join(' ')
+    };
+  }
   if (state.stale) return { text: 'Datos guardados en este navegador', tone: 'muted', busy: true, title: 'Se muestran mientras llegan los datos nuevos.' };
   const readAt = state.data?.readAt;
   if (!readAt) return { text: 'Datos al día', tone: 'ok' };

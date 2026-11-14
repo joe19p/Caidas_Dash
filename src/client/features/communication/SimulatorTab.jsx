@@ -7,6 +7,7 @@ import { Icon } from '@/ui/Icon.jsx';
 import { simLists, simulate, simRisk } from '@shared/simulator.mjs';
 import { metricFold } from '@shared/metrics.mjs';
 import { motiveIcon } from '@/lib/icons.mjs';
+import { csvName, downloadCsv } from '@/lib/csv.mjs';
 
 function Switch({ checked, label, onToggle }) {
   return (
@@ -46,7 +47,7 @@ const SIM_COLUMNS = {
 const byDefault = (a, b) => (Boolean(b.lock) - Boolean(a.lock)) || b.count - a.count;
 
 /** Tabla de listas: ordenable por cualquier columna, con buscador (nombre, código o motivo del candado, sin tildes). */
-function ListTable({ lists, off, onToggle }) {
+function ListTable({ lists, off, onToggle, title = '' }) {
   const [sort, setSort] = useState({ key: 'default', dir: 1 });
   const [query, setQuery] = useState('');
   const isOff = list => !list.lock && Boolean(off[list.code]);
@@ -91,8 +92,19 @@ function ListTable({ lists, off, onToggle }) {
         <span aria-live="polite" class="text-[12.5px] text-ink-muted">
           {needle ? `${shown.length} de ${lists.length} listas` : `${lists.length} listas, ${locked} con candado`}
         </span>
+        <button type="button" class="btn ml-auto h-8 px-3 text-[13px]" title="Descargar la tabla para abrirla en Excel"
+          onClick={() => downloadCsv(csvName('Simulador', title), [
+            { label: 'Lista de autosupresión', value: list => list.name },
+            { label: 'Código', value: list => list.code },
+            { label: 'Aplicar', value: list => (list.lock ? 'Con candado' : isOff(list) ? 'No' : 'Sí') },
+            { label: 'Motivo del candado', value: list => list.lock || '' },
+            { label: 'Excluye', value: list => list.count },
+            { label: 'Apertura esperada', value: list => (list.lock ? null : list.expectedOpen) }
+          ], rows)}>
+          <Icon name="download" size={15} />Descargar
+        </button>
         {sort.key !== 'default' && (
-          <button type="button" class="ml-auto text-[13px] font-semibold text-brand-text hover:underline" onClick={() => setSort({ key: 'default', dir: 1 })}>
+          <button type="button" class="text-[13px] font-semibold text-brand-text hover:underline" onClick={() => setSort({ key: 'default', dir: 1 })}>
             Orden inicial: candados primero
           </button>
         )}
@@ -158,7 +170,7 @@ export function SimulatorTab({ detail }) {
       </div>
       {!lists.length ? <p class="text-[13px] text-ink-muted">Esta comunicación no tiene listas de autosupresión aplicadas.</p> : (
         <div class="flex flex-wrap items-start gap-7">
-          <ListTable lists={lists} off={off} onToggle={code => setOff({ ...off, [code]: !off[code] })} />
+          <ListTable title={`${detail.record.name} ${String(detail.record.start).slice(0, 10)}`} lists={lists} off={off} onToggle={code => setOff({ ...off, [code]: !off[code] })} />
           <div class="flex min-w-0 flex-[1_1_340px] flex-col gap-3">
             <Compare label="Personas que reciben el envío" max={Math.max(record.sends, result.sends)}
               now={{ value: record.sends, text: fmtInt(record.sends) }} sim={{ value: result.sends, text: fmtInt(result.sends) }}

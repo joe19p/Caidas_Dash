@@ -10,20 +10,24 @@ import { cx, fmtInt, fmtPct, fmtPts, monthShort, dayShort, periodText, monthCoun
 import { Segmented } from '@/ui/Segmented.jsx';
 import { Sparkline } from '@/ui/Sparkline.jsx';
 import { Panel } from '@/ui/Panel.jsx';
-import { Icon } from '@/ui/Icon.jsx';
 import { MetricIcon } from '@/ui/MetricIcon.jsx';
-import { familyIcon } from '@/lib/icons.mjs';
+import { Trend } from '@/ui/Trend.jsx';
 import { deltaTone } from '@/ui/Delta.jsx';
 import { Skeleton, EmptyState, ErrorState } from '@/ui/States.jsx';
 import { messageText } from '@shared/messages.mjs';
 import { METRICS, SECONDARY, rateOf, valueOf, formatValue } from './metricsDefs.mjs';
 import { Timeline } from './Timeline.jsx';
 import { CalendarHeat } from './CalendarHeat.jsx';
+import { DropsChart } from './DropsChart.jsx';
+import { FamiliesTable, FamilyScatter } from './FamiliesPanel.jsx';
+import { Highlights } from './Highlights.jsx';
 
 /** Meses del periodo, con el mes en curso contado por la parte que va (14 de 30 días = 0.47). */
 const monthsIn = period => monthCount(period.from, period.to) - (period.cut ? 1 - period.cut / daysInMonth(period.to) : 0);
 /** Si un mes del historial cae en el periodo. */
 const inPeriod = (month, period) => month >= period.from && month <= period.to;
+/** Indicadores que se eligen sobre la línea de tiempo (los mismos que se tocan en las tarjetas). */
+const TIMELINE_OPTIONS = ['comms', 'or', ...SECONDARY].map(key => ({ value: key, label: METRICS[key].label }));
 const MODES = [
   { value: 'com', label: 'Por comunicación', help: 'Cada comunicación pesa igual (mediana)' },
   { value: 'vol', label: 'Por volumen', help: 'Las comunicaciones grandes pesan más' }
@@ -36,11 +40,11 @@ function deltaText(key, now, before) {
     if (!before) return { text: 'Sin periodo anterior para comparar', tone: 'text-ink-muted' };
     const change = (now - before) / before;
     if (Math.abs(change) < 0.005) return { text: 'Igual que el periodo anterior', tone: 'text-ink-muted' };
-    return { text: `${change >= 0 ? '▲' : '▼'} ${Math.abs(change * 100).toFixed(0)}% vs periodo anterior`, tone: 'text-ink-muted' };
+    return { text: `${Math.abs(change * 100).toFixed(0)}% vs periodo anterior`, tone: 'text-ink-muted', delta: change };
   }
   const delta = now - before;
   const digits = key === 'deliv' || key === 'or' ? 1 : 2;
-  return { text: `${delta >= 0 ? '▲' : '▼'} ${fmtPts(Math.abs(delta), digits).replace('+', '')} vs anterior`, tone: deltaTone(delta, METRICS[key].better) };
+  return { text: `${fmtPts(Math.abs(delta), digits).replace('+', '')} vs anterior`, tone: deltaTone(delta, METRICS[key].better), delta: delta || 0.000001 };
 }
 
 function HeroComms({ period, history, active, onPick }) {
@@ -59,7 +63,7 @@ function HeroComms({ period, history, active, onPick }) {
           {fmtInt(period.kpis.sends)} envíos
         </span>
       </span>
-      <span class={cx('text-[13px] font-semibold', delta.tone)}>{delta.text}</span>
+      <Trend delta={delta.delta} class={cx('text-[13px] font-semibold', delta.tone)}>{delta.text}</Trend>
       <svg role="img" aria-label="Comunicaciones por mes, últimos 24 meses y el mes en curso" viewBox="0 0 520 110" class="mt-1 block h-auto w-full">
         {/* El mes en curso va a medias: rayado. */}
         <defs>
@@ -106,7 +110,9 @@ function HeroOpen({ period, historic, history, mode, active, onPick }) {
         <span class="text-sm text-ink-muted">promedio histórico <b class="text-ink">{fmtPct(hist)}</b></span>
       </span>
       <span class={cx('text-[13px] font-semibold', deltaTone(diff, 'up'))}>
-        {diff == null ? 'Sin histórico para comparar' : Math.abs(diff) < 0.001 ? 'Igual a su promedio histórico' : `${diff > 0 ? '▲' : '▼'} ${fmtPts(Math.abs(diff)).replace('+', '')} frente a su promedio histórico`}
+        <Trend delta={diff == null || Math.abs(diff) < 0.001 ? null : diff}>
+          {diff == null ? 'Sin histórico para comparar' : Math.abs(diff) < 0.001 ? 'Igual a su promedio histórico' : `${fmtPts(Math.abs(diff)).replace('+', '')} frente a su promedio histórico`}
+        </Trend>
       </span>
       <svg role="img" aria-label="Open rate por mes frente al promedio histórico" viewBox="0 0 520 110" class="mt-1 block h-auto w-full">
         {inside.length > 0 && <rect x={ox(inside[0]) - 10} y="0" width={ox(inside[inside.length - 1]) - ox(inside[0]) + 20} height="96" rx="4" fill="var(--color-brand-soft)" opacity="0.6" />}
@@ -131,36 +137,36 @@ function Kpi({ metricKey, period, history, mode, active, onPick }) {
   const delta = deltaText(metricKey, now, before);
   return (
     <button type="button" aria-pressed={active} onClick={onPick}
-      class={cx('flex flex-col gap-2 rounded-2xl border bg-surface px-4 py-3.5 text-left', active ? 'border-brand-text ring-3 ring-brand-soft' : 'border-line hover:border-line-strong')}>
+      class={cx('flex flex-col justify-between gap-2 rounded-2xl border bg-surface px-4 py-3.5 text-left', active ? 'border-brand-text ring-3 ring-brand-soft' : 'border-line hover:border-line-strong')}>
       <span class="flex items-center gap-2 text-[12.5px] font-semibold text-ink-muted"><MetricIcon metric={metricKey} size="size-6" iconSize={14} />{METRICS[metricKey].label}</span>
       <span class="flex items-end justify-between gap-2">
         <b class="text-[26px] leading-none font-bold">{formatValue(metricKey, now)}</b>
         <Sparkline values={history.map(item => valueOf(item, metricKey, mode))} />
       </span>
-      <span class={cx('text-xs font-semibold', delta.tone)}>{delta.text}</span>
+      <Trend delta={delta.delta} class={cx('text-xs font-semibold', delta.tone)}>{delta.text}</Trend>
     </button>
   );
 }
 
 function RulesPanel({ rules, mode }) {
   return (
-    <Panel boxed id="rules" title="Reglas de protección aplicadas"
-      subtitle="Qué reglas del CRM y de Marketing Cloud cuidan la base (frecuencia, reputación y consentimiento), y cómo cambia su peso.">
-      <div class="grid grid-cols-[minmax(0,1fr)_64px_130px_80px] items-center gap-x-3.5 border-b border-line pb-1.5 text-xs font-semibold text-ink-muted">
+    <Panel boxed id="rules" class="h-full" title="Reglas de protección aplicadas"
+      subtitle="Peso de cada regla del CRM y de Marketing Cloud en lo que no se envió, y cómo cambia.">
+      <div class="grid grid-cols-[minmax(0,1fr)_56px_100px_72px] items-center gap-x-3 border-b border-line pb-1.5 text-xs font-semibold text-ink-muted">
         <span>Regla</span><span class="text-right">Peso</span><span>24 meses</span><span class="text-right">vs anterior</span>
       </div>
       {rules.map(rule => {
         const share = rule.share[mode];
         const delta = share - rule.prev[mode];
         return (
-          <div key={rule.code || 'otros'} class="grid grid-cols-[minmax(0,1fr)_64px_130px_80px] items-center gap-x-3.5">
+          <div key={rule.code || 'otros'} class="grid grid-cols-[minmax(0,1fr)_56px_100px_72px] items-center gap-x-3">
             <span class="flex min-w-0 items-center gap-2 text-[13px] font-semibold">
               <span class={cx('size-[9px] flex-none rounded-[3px]', rule.origin === 'blq' ? 'bg-blq' : 'bg-asl')} />
               <span class="truncate" title={rule.code || ''}>{rule.name}</span>
             </span>
             <b class="text-right text-[13px]">{fmtPct(share)}</b>
-            <Sparkline values={rule.series} width={130} height={28} stroke={rule.origin === 'blq' ? 'var(--color-blq)' : 'var(--color-asl)'} />
-            <span class="text-right text-xs font-semibold text-ink-muted">{Math.abs(delta) < 0.0005 ? 'Igual' : `${delta > 0 ? '▲' : '▼'} ${fmtPts(Math.abs(delta)).replace('+', '')}`}</span>
+            <Sparkline values={rule.series} width={100} height={26} stroke={rule.origin === 'blq' ? 'var(--color-blq)' : 'var(--color-asl)'} />
+            <Trend delta={Math.abs(delta) < 0.0005 ? null : delta} class="justify-end text-right text-xs font-semibold text-ink-muted">{Math.abs(delta) < 0.0005 ? 'Igual' : fmtPts(Math.abs(delta)).replace('+', '')}</Trend>
           </div>
         );
       })}
@@ -172,58 +178,24 @@ function RulesPanel({ rules, mode }) {
   );
 }
 
-function FamiliesPanel({ families, mode }) {
-  return (
-    <Panel boxed id="families" title="Por familia de comunicación" subtitle="Cada familia en el periodo. La familia sale del nombre de la maqueta (CYBER, PROMO, ONBOARDING…).">
-      <div class="overflow-x-auto">
-        <table class="w-full border-collapse text-[13px]">
-          <thead>
-            <tr class="text-right text-xs text-ink-muted">
-              <th scope="col" class="py-1.5 pr-2 text-left font-semibold">Familia</th>
-              <th scope="col" class="px-2 py-1.5 font-semibold">Comunic.</th>
-              <th scope="col" class="px-2 py-1.5 font-semibold">Entrega</th>
-              <th scope="col" class="px-2 py-1.5 font-semibold">Apertura</th>
-              <th scope="col" class="px-2 py-1.5 font-semibold">CTOR</th>
-              <th scope="col" class="py-1.5 pl-2 text-left font-semibold">Apertura, 24 meses</th>
-            </tr>
-          </thead>
-          <tbody>
-            {families.map(family => (
-              <tr key={family.name} class="border-t border-line">
-                <th scope="row" class="py-2.5 pr-2 text-left font-semibold">
-                  <span class="flex items-center gap-2"><Icon name={familyIcon(family.name)} size={15} class="flex-none text-ink-muted" />{family.name}</span>
-                </th>
-                <td class="px-2 py-2.5 text-right">{fmtInt(family.comms)}</td>
-                <td class="px-2 py-2.5 text-right">{fmtPct(rateOf(family.deliv, mode))}</td>
-                <td class="px-2 py-2.5 text-right font-bold">{fmtPct(rateOf(family.or, mode))}</td>
-                <td class="px-2 py-2.5 text-right">{fmtPct(rateOf(family.ctor, mode), 2)}</td>
-                <td class="py-2.5 pl-2"><Sparkline values={family.orSeries} width={110} height={24} /></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </Panel>
-  );
-}
-
 const REVIEW_TEXT = { or: ['apertura', 'bajo'], ctor: ['CTOR', 'bajo'], bounce: ['rebote', 'sobre'], unsub: ['bajas', 'sobre'] };
 
 function ReviewPanel({ review }) {
   return (
-    <Panel boxed id="review" title="Comunicaciones a revisar" subtitle="Las que más se alejan de lo normal en su familia durante el periodo. Toca una para verla en detalle.">
+    <Panel boxed id="review" class="h-full" title="Comunicaciones a revisar" subtitle="Las que más se alejan de lo normal en su familia durante el periodo. Toca una para verla en detalle.">
       {review.length ? (
-        <div class="grid grid-cols-[repeat(auto-fit,minmax(240px,1fr))] gap-2.5">
+        <div class="flex flex-col gap-2">
           {review.map(item => {
             const [metric, side] = REVIEW_TEXT[item.metric];
             const digits = item.metric === 'or' ? 1 : 2;
             return (
               <button key={item.job} type="button" onClick={() => openCommunication({ day: item.start.slice(0, 10), job: item.job })}
-                class="flex flex-col gap-1.5 rounded-xl border border-line px-3.5 py-3 text-left hover:bg-surface-muted focus-visible:outline-2 focus-visible:outline-brand-text">
+                class="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-3 gap-y-0.5 rounded-xl border border-line px-3.5 py-2.5 text-left hover:bg-surface-muted focus-visible:outline-2 focus-visible:outline-brand-text">
                 <span class="truncate text-[13px] font-semibold" title={item.name}>{item.name}</span>
-                <span class="text-xs text-ink-muted">{dayShort(item.start)}, {item.family}</span>
-                <span class="flex items-baseline gap-2"><b class="text-xl">{fmtPct(item.value, digits)}</b><span class="text-[12.5px] text-ink-muted">{metric}</span></span>
-                <span class="text-xs font-semibold text-danger">{fmtPts(Math.abs(item.value - item.familyValue), digits).replace('+', '')} {side} su familia ({fmtPct(item.familyValue, digits)})</span>
+                <b class="text-lg leading-tight">{fmtPct(item.value, digits)}</b>
+                <span class="truncate text-xs text-ink-muted">{dayShort(item.start)}, {item.family}</span>
+                <span class="text-right text-xs text-ink-muted">{metric}</span>
+                <span class="col-span-2 text-xs font-semibold text-danger">{fmtPts(Math.abs(item.value - item.familyValue), digits).replace('+', '')} {side} su familia ({fmtPct(item.familyValue, digits)})</span>
               </button>
             );
           })}
@@ -278,43 +250,56 @@ export function GeneralView() {
   if (!period) return <div class="flex flex-col gap-4"><Skeleton class="h-12" /><div class="grid gap-4 md:grid-cols-2"><Skeleton class="h-56" /><Skeleton class="h-56" /></div></div>;
   return (
     <div class={cx('flex flex-col gap-4 transition-opacity', loading && 'opacity-60')} aria-busy={loading}>
-      <div class="panel flex flex-wrap items-center gap-x-3.5 gap-y-2.5 px-4 py-2.5">
-        <p class="min-w-0 flex-[1_1_320px] text-[13px] text-ink-muted first-letter:uppercase" aria-live="polite"><PeriodSentence period={period} /></p>
+      <div class="panel flex flex-wrap items-center gap-x-6 gap-y-2.5 px-4 py-2.5">
+        <div class="flex min-w-0 flex-[1_1_420px] flex-col gap-0.5">
+          <p class="text-[13.5px] font-semibold first-letter:uppercase" aria-live="polite"><PeriodSentence period={period} /></p>
+          <p class="text-[12.5px] text-ink-muted">
+            {mode === 'vol' ? 'Las tasas están ponderadas por volumen: una comunicación grande pesa más que una pequeña.' : 'Las tasas son la mediana por comunicación: cada envío pesa igual, sea grande o pequeño.'}
+            {' '}No sumamos personas entre comunicaciones: una misma persona puede estar en muchas.
+          </p>
+        </div>
         <span class="flex flex-wrap items-center gap-x-3.5 gap-y-1.5">
           <span class="text-[13px] font-semibold text-ink-muted">Promediar</span>
           <Segmented label="Cómo promediar" value={mode} onChange={setMode} options={MODES} />
         </span>
       </div>
 
-      <p class="flex items-start gap-2.5 rounded-xl bg-brand-soft px-3.5 py-2.5 text-[13px] leading-snug">
-        <Icon name="info" size={18} class="mt-px flex-none text-brand-text" />
-        <span>
-          {mode === 'vol' ? 'Las tasas están ponderadas por volumen: una comunicación grande pesa más que una pequeña.' : 'Las tasas son la mediana por comunicación: cada envío pesa igual, sea grande o pequeño.'}
-          {' '}No sumamos personas entre comunicaciones: una misma persona puede estar en muchas.
-        </span>
-      </p>
-
-      <section aria-label="Lo principal del periodo" class="grid grid-cols-[repeat(auto-fit,minmax(min(460px,100%),1fr))] gap-4">
-        <HeroComms period={period} history={data.history} active={metric === 'comms'} onPick={() => setMetric('comms')} />
-        <HeroOpen period={period} historic={data.historic} history={data.history} mode={mode} active={metric === 'or'} onPick={() => setMetric('or')} />
+      <section aria-label="Lo principal del periodo" class="grid grid-cols-12 gap-4">
+        <div class="col-span-12 grid md:col-span-6 xl:col-span-4">
+          <HeroComms period={period} history={data.history} active={metric === 'comms'} onPick={() => setMetric('comms')} />
+        </div>
+        <div class="col-span-12 grid md:col-span-6 xl:col-span-4">
+          <HeroOpen period={period} historic={data.historic} history={data.history} mode={mode} active={metric === 'or'} onPick={() => setMetric('or')} />
+        </div>
+        <div aria-label="Otros indicadores del periodo" role="group" class="col-span-12 grid grid-cols-2 gap-2.5 md:grid-cols-4 xl:col-span-4 xl:grid-cols-2">
+          {SECONDARY.map(key => (
+            <Kpi key={key} metricKey={key} period={period} history={data.history} mode={mode} active={metric === key} onPick={() => setMetric(key)} />
+          ))}
+        </div>
       </section>
 
-      <section aria-label="Otros indicadores del periodo" class="grid grid-cols-[repeat(auto-fit,minmax(190px,1fr))] gap-2.5">
-        {SECONDARY.map(key => (
-          <Kpi key={key} metricKey={key} period={period} history={data.history} mode={mode} active={metric === key} onPick={() => setMetric(key)} />
-        ))}
-      </section>
-
-      <section class="panel p-4"><Timeline history={data.history} metric={metric} mode={mode} period={period} /></section>
-
-      <CalendarHeat calendar={period.calendar} />
-
-      <div class="grid grid-cols-[repeat(auto-fit,minmax(min(420px,100%),1fr))] gap-4">
-        <FamiliesPanel families={period.families} mode={mode} />
-        <RulesPanel rules={period.rules} mode={mode} />
+      <div class="grid grid-cols-12 gap-4">
+        <section id="timeline" aria-label="Línea de tiempo" class="panel col-span-12 flex flex-col gap-3 p-4 xl:col-span-8">
+          <div class="overflow-x-auto"><Segmented label="Indicador de la línea de tiempo" value={metric} onChange={setMetric} options={TIMELINE_OPTIONS} size="sm" /></div>
+          <Timeline history={data.history} metric={metric} mode={mode} period={period} />
+        </section>
+        <div class="col-span-12 xl:col-span-4"><Highlights period={period} history={data.history} mode={mode} onMetric={setMetric} /></div>
       </div>
 
-      <ReviewPanel review={period.review} />
+      <div class="grid grid-cols-12 gap-4">
+        <div class="col-span-12 xl:col-span-8"><DropsChart history={data.history} period={period} /></div>
+        <div class="col-span-12 xl:col-span-4"><RulesPanel rules={period.rules} mode={mode} /></div>
+      </div>
+
+      <div class="grid grid-cols-12 gap-4">
+        <div class="col-span-12 xl:col-span-8"><CalendarHeat calendar={period.calendar} /></div>
+        <div class="col-span-12 xl:col-span-4"><ReviewPanel review={period.review} /></div>
+      </div>
+
+      <div class="grid grid-cols-12 gap-4">
+        <div class="col-span-12 min-w-0 xl:col-span-8"><FamiliesTable families={period.families} period={period} mode={mode} /></div>
+        <div class="col-span-12 xl:col-span-4"><FamilyScatter families={period.families} period={period} mode={mode} /></div>
+      </div>
     </div>
   );
 }

@@ -17,6 +17,7 @@ import { AccountCluster } from '@/features/account/AccountCluster.jsx';
 import { StatusBar } from '@/features/status/StatusBar.jsx';
 import { selected } from '@/state/search.mjs';
 import { openView } from '@/state/period.mjs';
+import { startRoute } from '@/state/route.mjs';
 
 /** Comparar aparece desde 2 elegidas (con una no hay nada que comparar); si ya se está en ella, se mantiene. */
 const COMPARE_MIN = 2;
@@ -88,12 +89,12 @@ function Notice() {
 }
 
 export function App() {
-  useEffect(() => { loadOverview(); }, []);
+  useEffect(() => { startRoute(); loadOverview(); }, []);
   return (
     <div class="min-h-screen bg-canvas text-ink">
       <Header />
       {/* Abajo queda lugar para la barra de estado (y la bandeja, si hay elegidas). */}
-      <main class={cx('mx-auto flex max-w-[1360px] flex-col gap-4 px-6 pt-5 max-sm:px-4', selected.value.length && view.value !== 'compare' ? 'pb-36' : 'pb-16')}>
+      <main class={cx('flex w-full flex-col gap-4 px-6 pt-5 max-sm:px-4', selected.value.length && view.value !== 'compare' ? 'pb-36' : 'pb-16')}>
         {view.value === 'general' ? <GeneralView /> : view.value === 'compare' ? <CompareView /> : <CommunicationView />}
       </main>
       <SelectionTray />

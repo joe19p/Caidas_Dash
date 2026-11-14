@@ -22,10 +22,24 @@ function setupApplication() {
     created.push(name);
   });
   installChangeTrigger_(active);
+  installDailyTrigger_();
   bumpDataVersion_();
+  // Columnas: las reconocidas con otro nombre se leen bien; las que faltan se leen como cero.
+  const headers = sheetHeaderIssues_();
+  headers.forEach(issue => {
+    issue.renamed.forEach(item => console.log(`${issue.sheet}: «${item.found}» se lee como ${item.expected}.`));
+    if (issue.missing.length) console.warn(`${issue.sheet}: faltan las columnas ${issue.missing.join(', ')}. Esas cifras se leerán como cero.`);
+  });
+  if (!headers.length) console.log('Las columnas de todas las pestañas están completas.');
   console.log(`Hoja registrada: ${active.getUrl()}`);
   console.log(created.length ? `Pestañas creadas: ${created.join(', ')}.` : 'Todas las pestañas ya existían.');
-  return { spreadsheetUrl: active.getUrl(), created };
+  return { spreadsheetUrl: active.getUrl(), created, headers };
+}
+
+/** Un solo activador diario a las 00:10 (hora de Lima) que precalcula la caché del día (warmCache). */
+function installDailyTrigger_() {
+  const exists = ScriptApp.getProjectTriggers().some(trigger => trigger.getHandlerFunction() === 'warmCache');
+  if (!exists) ScriptApp.newTrigger('warmCache').timeBased().everyDays(1).atHour(0).nearMinute(10).inTimezone(APP.TIMEZONE).create();
 }
 
 /** Un solo activador onChange sobre la hoja (si ya está, no se duplica). */

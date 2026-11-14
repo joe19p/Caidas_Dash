@@ -1,7 +1,7 @@
 // Buscador global (como el del cronograma) y comunicaciones elegidas para comparar. Las palabras se fijan como chips;
 // O muestra las que tengan alguna y Y las que tengan todas. Busca en el mes de la barra o, a pedido, en todos los meses.
 // Lo elegido queda aunque cambie la búsqueda, el día o el mes.
-import { computed, signal } from '@preact/signals';
+import { computed, effect, signal } from '@preact/signals';
 import { metricSearchTerms } from '@shared/metrics.mjs';
 import { readStored, writeStored } from '@/services/storage.mjs';
 
@@ -44,8 +44,24 @@ export function openSearch() {
 /** Máximo para comparar (como COMPARE_MAX en el servidor). */
 export const SELECTION_MAX = 50;
 
-/** Comunicaciones elegidas: resúmenes de la lista ({ job, name, start, … }), en el orden en que se eligieron. */
-export const selected = signal([]);
+/** Lo que se guarda de cada elegida: lo que muestran la bandeja y la lista (no la comparación entera). */
+const SAVED_FIELDS = ['job', 'name', 'family', 'start', 'base', 'sends', 'deliv', 'bounces', 'asl', 'blq', 'top'];
+const slim = item => Object.fromEntries(SAVED_FIELDS.filter(key => item[key] !== undefined).map(key => [key, item[key]]));
+const stored = readStored('selected', []);
+
+/**
+ * Comunicaciones elegidas: resúmenes de la lista ({ job, name, start, … }), en el orden en que se eligieron. Se guardan
+ * en el navegador: al recargar siguen elegidas.
+ */
+export const selected = signal(Array.isArray(stored) ? stored.filter(item => item && typeof item.job === 'string').slice(0, 50) : []);
+effect(() => { writeStored('selected', selected.value.map(slim)); });
+
+/** Completa el resumen de las elegidas que llegaron solo con su JobID (desde un enlace), con lo que trajo la comparación. */
+export function fillSelected(items) {
+  const byJob = new Map(items.map(item => [item.job, item]));
+  if (!selected.value.some(item => !item.start && byJob.has(item.job))) return;
+  selected.value = selected.value.map(item => (!item.start && byJob.has(item.job) ? slim(byJob.get(item.job)) : item));
+}
 export const selectedJobs = computed(() => new Set(selected.value.map(item => item.job)));
 
 export function toggleSelected(item) {

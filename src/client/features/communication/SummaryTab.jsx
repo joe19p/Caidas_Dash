@@ -4,6 +4,7 @@ import { useState } from 'preact/hooks';
 import { cx, fmtInt, fmtPct, fmtPts, largestRemainder } from '@/lib/format.mjs';
 import { Panel } from '@/ui/Panel.jsx';
 import { MetricIcon } from '@/ui/MetricIcon.jsx';
+import { Trend } from '@/ui/Trend.jsx';
 import { Icon } from '@/ui/Icon.jsx';
 import { motiveIcon } from '@/lib/icons.mjs';
 import { deltaTone } from '@/ui/Delta.jsx';
@@ -18,12 +19,13 @@ const GROUPS = [
 
 function Kpi({ label, value, delta, better, note, order = 0, metric }) {
   const tone = delta == null ? 'text-ink-muted' : deltaTone(delta, better);
-  const text = delta == null ? note : Math.abs(delta) < 0.0005 ? 'Igual a lo normal' : `${delta > 0 ? '▲' : '▼'} ${fmtPts(Math.abs(delta)).replace('+', '')} vs lo normal`;
+  const same = delta != null && Math.abs(delta) < 0.0005;
+  const text = delta == null ? note : same ? 'Igual a lo normal' : `${fmtPts(Math.abs(delta)).replace('+', '')} vs lo normal`;
   return (
     <div class="anim-rise flex flex-col gap-1.5 border-l-2 border-line-strong py-1 pl-3.5" style={{ '--delay': `${order * 35}ms` }}>
       <span class="flex items-center gap-2 text-[12.5px] font-semibold text-ink-muted"><MetricIcon metric={metric} size="size-6" iconSize={14} />{label}</span>
       <b class="text-[22px] leading-none font-bold">{value}</b>
-      <span class={cx('text-xs font-semibold', tone)}>{text}</span>
+      <Trend delta={delta == null || same ? null : delta} class={cx('text-xs font-semibold', tone)}>{text}</Trend>
     </div>
   );
 }

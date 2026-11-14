@@ -28,5 +28,5 @@ function getServerInfo() {
       configured: Boolean(PropertiesService.getScriptProperties().getProperty(APP.PROPERTIES.SPREADSHEET_ID)),
       serverTime: isoDateTime_()
     };
-  });
+  }, 'getServerInfo');
 }

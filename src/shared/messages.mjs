@@ -5,6 +5,7 @@ const MESSAGE_CATALOG = Object.freeze({
   "APP_NOT_BOUND": { "text": "setupApplication se ejecuta desde la hoja: ábrela y entra por Extensiones › Apps Script.", "level": "error" },
   "SETUP_OTHER_SHEET": { "text": "La app ya lee sus datos de otra hoja: {url}. Para usar esta, borra la propiedad del script APP_SPREADSHEET_ID y vuelve a ejecutar setupApplication.", "level": "error" },
   "USER_NOT_IDENTIFIED": { "text": "No se pudo identificar tu cuenta de Google.", "level": "error" },
+  "HEADERS_MISSING": { "text": "En la pestaña {sheet} faltan columnas: {columns}. Esas cifras se leen como cero.", "level": "warning" },
   "SHEET_MISSING": { "text": "Falta la pestaña {name} en la hoja. Ejecuta setupApplication para crearla.", "level": "error" },
   "PERIOD_INVALID": { "text": "Ese periodo no está disponible. Elige meses hasta el mes en curso, de 36 como máximo.", "level": "error" },
   "MONTH_INVALID": { "text": "El mes no es válido.", "level": "error" },

@@ -54,15 +54,29 @@ Como el del cronograma, en la barra azul (atajo «/»):
 
 ## Vista general
 
+A todo el ancho, en una grilla de 12 columnas (en pantallas angostas los bloques se apilan):
+
+- **Barra del periodo:** qué periodo se ve, contra cuál se compara y cómo se promedia (con «Promediar»).
 - Protagonistas: **comunicaciones distintas enviadas** (con envíos y promedio por mes) y **open rate del periodo**
-  frente a su promedio histórico (24 meses cerrados). El mes en curso se ve rayado (barras) o hueco (línea).
-- Indicadores: entrega, CTOR, rebote y bajas, con su tendencia y la variación contra el periodo anterior. Al elegir uno
-  (o un protagonista) se ve su **línea de tiempo de 24 meses y el mes en curso** (punteado: va a medias).
-- **Calendario** de los 3 meses que terminan en el periodo elegido: comunicaciones por día o apertura, promedio por día de la semana y
-  enlace a las comunicaciones del día elegido.
-- **Por familia de comunicación** y **reglas de protección aplicadas** (peso de cada regla, tendencia, sin juicio de
-  bueno o malo).
-- **Comunicaciones a revisar:** las que más se alejan de su familia (apertura o CTOR bajos, rebote o bajas altos).
+  frente a su promedio histórico (24 meses cerrados), junto a los indicadores **entrega, CTOR, rebote y bajas** (2×2),
+  con su tendencia y la variación contra el periodo anterior. El mes en curso se ve rayado (barras) o hueco (línea).
+- **Línea de tiempo de 24 meses y el mes en curso** (punteado: va a medias) del indicador elegido, en los botones de
+  arriba o tocando su tarjeta.
+- **Lo que cambió en el periodo** (`src/shared/highlights.mjs`): hasta 5 frases armadas con reglas fijas, cada una con
+  su enlace: el mes en curso con la mejor o peor apertura de los 24 meses, el indicador que más se movió, cuántas de
+  cada 100 personas no reciben el correo, la regla que más peso ganó, la familia más alejada en apertura, la familia que
+  más se repite entre las comunicaciones a revisar y el día de la semana con más envíos. Solo salen si pasan su umbral.
+- **Cuántas de cada 100 personas no reciben el correo:** por mes, apilado en autosupresión del CRM, bloqueos de
+  Marketing Cloud y rebotes, siempre ponderado por volumen (las medianas de cada destino no suman la del total).
+- **Reglas de protección aplicadas** (peso de cada regla en lo no enviado, tendencia, sin juicio de bueno o malo).
+- **Calendario** de los 3 meses que terminan en el periodo, lado a lado: comunicaciones por día o apertura, el día
+  elegido con el enlace a sus comunicaciones y el promedio por día de la semana.
+- **Comunicaciones a revisar:** hasta 5, las que más se alejan de su familia (apertura o CTOR bajos, rebote o bajas
+  altos).
+- **Por familia de comunicación:** comunicaciones, envíos, entrega, apertura, CTOR, rebote, bajas y «no reciben», con
+  la apertura de 24 meses; se ordena tocando el encabezado y se descarga para Excel.
+- **Apertura y clic por familia:** cada familia como un círculo (tamaño según sus comunicaciones), con las tasas del
+  periodo como referencia.
 
 ## Por comunicación
 
@@ -98,7 +112,23 @@ Pestañas:
   desde la última visita, «Información nueva disponible: envíos hasta el …»; si lo guardado sigue vigente, ninguno.
   Cada 2 minutos se revisa si la hoja cambió (la barra de estado y la campana avisan).
 - **Precarga:** con la vista general lista, el mes más reciente se pide en segundo plano para «Por comunicación».
-- **localStorage** solo guarda preferencias: el tema, la última pestaña de la comunicación, el nivel del Funnel y el
-  calendario contraído.
+- **localStorage** solo guarda preferencias: el tema, la última pestaña de la comunicación, el nivel del Funnel, el
+  calendario contraído y las comunicaciones elegidas para comparar (siguen elegidas al recargar).
+- **Precálculo diario:** a las 00:10 (hora de Lima) `warmCache` deja calculados la vista general del día y el mes más
+  reciente, para que la primera persona no espere. Lo instala `setupApplication`.
+
+## Enlaces, descargas y avisos de la hoja
+
+- **Estado en el enlace** (`state/route.mjs`): la dirección guarda la vista, el periodo, la comunicación abierta (mes,
+  día, envío y pestaña) o las comunicaciones que se comparan (`#v=compare&envios=1,2`). Un enlace se puede compartir y
+  el botón Atrás vuelve a lo anterior. Un enlace con valores inválidos abre la vista general.
+- **Descargar para Excel** (`lib/csv.mjs`): Comparar, las familias de la vista general, la tabla de motivos y la del
+  Simulador bajan un CSV en UTF-8 con las cifras como número (las tasas en 0.1234) y la tabla tal como se ve (búsqueda y
+  orden).
+- **Columnas de la hoja:** una columna conocida escrita de otra forma («Open Rate», «open_rate») se lee como la
+  esperada; si falta una, la barra de estado dice «Faltan columnas en la hoja» y la actividad nombra cuáles (esas
+  cifras se leen como cero).
+- **Registro del servidor:** cada función pública queda con su nombre; las que tardan 4 s o más y los errores
+  inesperados quedan en el registro de ejecuciones de Apps Script.
 - **Tooltips propios** (`ui/TooltipLayer.jsx`): reemplazan a los del navegador en toda la app; toman el `title` de
   cada elemento (en los gráficos, `data-tip`), salen al pasar el mouse o con el teclado y respetan claro y oscuro.

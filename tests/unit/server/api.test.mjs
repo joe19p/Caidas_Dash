@@ -117,7 +117,9 @@ test('la vista general lleva la clave de los datos para el navegador, y cambia a
 test('la hoja se lee una vez por versión: cambiar de día recalcula sin volver a leerla', () => {
   const fake = sheet([send({ job: 1, start: '10/5/2026 9:00:00 AM' }), send({ job: 2, start: '9/5/2026 9:00:00 AM' })]);
   const { context } = loadGas({ spreadsheet: fake });
-  const reads = () => fake.store.readsBy?.EmailSummary_NotSent || 0;
+  // Desde aquí: setupApplication (al cargar) ya leyó la cabecera para revisar las columnas.
+  const installed = fake.store.readsBy?.EmailSummary_NotSent || 0;
+  const reads = () => (fake.store.readsBy?.EmailSummary_NotSent || 0) - installed;
   const today = context.getOverview();
   const afterFirst = reads();
   assert.equal(afterFirst, 1);
@@ -148,4 +150,28 @@ test('doGet incluye la vista general en la página', () => {
   const boot = JSON.parse(output.content.match(/APP_BOOT=(.*?);<\/script>/)[1]);
   assert.equal(boot.overview.total, 1);
   assert.equal(boot.email, 'admin@example.com');
+});
+
+test('una columna con otro nombre se lee bien y la que falta llega como aviso en la vista general', () => {
+  const headers = SAMPLE_HEADERS.map(header => (header === 'UniqueOpens' ? 'Unique Opens' : header)).filter(header => header !== 'UniqueClicks');
+  const values = send({ job: 7, opens: 50 });
+  const rowFor = headers.map(header => values[SAMPLE_HEADERS.indexOf(header === 'Unique Opens' ? 'UniqueOpens' : header)]);
+  const { context } = loadGas({ spreadsheet: createFakeSpreadsheet({ EmailSummary_NotSent: [headers, rowFor] }) });
+  const overview = context.getOverview();
+  const issue = overview.headerIssues.find(item => item.sheet === 'EmailSummary_NotSent');
+  assert.ok(issue.missing.includes('UniqueClicks'));
+  assert.ok(!issue.missing.includes('UniqueOpens'));
+  const detail = context.getCommunication('7');
+  assert.equal(detail.record.opens, 50);
+  assert.ok(!detail.motives.some(motive => motive.code === 'Unique Opens'), 'No se toma como motivo.');
+});
+
+test('setupApplication instala un solo activador diario de precálculo y warmCache deja la caché lista', () => {
+  const { context, triggers } = loadGas({ spreadsheet: sheet([send({ job: 1 })]), setup: false });
+  context.setupApplication();
+  context.setupApplication();
+  const daily = triggers.filter(trigger => trigger.handler === 'warmCache');
+  assert.equal(daily.length, 1);
+  assert.equal(daily[0].hour, 0);
+  assert.equal(context.warmCache(), true);
 });

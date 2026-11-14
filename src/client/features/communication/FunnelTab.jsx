@@ -9,6 +9,7 @@ import { Icon } from '@/ui/Icon.jsx';
 import { DESTINATION_ICONS, motiveIcon } from '@/lib/icons.mjs';
 import { Segmented } from '@/ui/Segmented.jsx';
 import { readStored, writeStored } from '@/services/storage.mjs';
+import { csvName, downloadCsv } from '@/lib/csv.mjs';
 
 // Qué caja se une con cuál (de izquierda a derecha) y el color de cada flecha: el del destino.
 // El último número es la columna de destino (para escalonar la animación de entrada).
@@ -120,6 +121,21 @@ const FIRST_ROWS = 6;
  * ordenable por cualquier columna dentro de cada grupo, con buscador (nombre, código y descripción, sin tildes) y el
  * encabezado fijo al recorrerla. Al buscar se ven todas las coincidencias, aunque el grupo esté contraído.
  */
+/** Motivos para Excel: lo que se ve en la tabla (con la búsqueda y el orden), todos los de cada grupo. */
+function exportMotives(detail, groups) {
+  const base = detail.record.base || 1;
+  const rows = groups.flatMap(group => group.list.map(motive => ({ ...motive, group: group.label })));
+  downloadCsv(csvName('Motivos', detail.record.name, String(detail.record.start).slice(0, 10)), [
+    { label: 'Origen', value: row => row.group },
+    { label: 'Código', value: row => row.code },
+    { label: 'Motivo', value: row => row.name },
+    { label: 'Descripción', value: row => row.description || '' },
+    { label: 'Volumen caído', value: row => row.count },
+    { label: '% sobre caídas', value: row => row.share },
+    { label: '% audiencia total', value: row => row.count / base }
+  ], rows);
+}
+
 function MotivesTable({ detail }) {
   const [sort, setSort] = useState({ key: 'count', dir: -1 });
   const [collapsed, setCollapsed] = useState({});
@@ -185,6 +201,9 @@ ${motive.description || ''}`).includes(needle);
             )}
           </label>
           {!needle && <button type="button" class="btn h-8 px-3 text-[13px]" onClick={toggleAll}>{allCollapsed ? 'Expandir todo' : 'Contraer todo'}</button>}
+          <button type="button" class="btn h-8 px-3 text-[13px]" title="Descargar la tabla para abrirla en Excel" onClick={() => exportMotives(detail, groups)}>
+            <Icon name="download" size={15} />Descargar
+          </button>
         </span>
       </div>
       {needle && (

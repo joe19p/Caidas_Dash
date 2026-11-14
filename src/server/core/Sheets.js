@@ -30,6 +30,23 @@ function cellText_(value) {
   return value == null ? '' : value;
 }
 
+/**
+ * Cabeceras que faltan en las pestañas con datos: [{ sheet, missing: [columnas] }]. Lee solo la fila 1. Las pestañas
+ * que no están o están vacías no cuentan (ya avisan por su lado o no tienen nada que leer).
+ */
+function sheetHeaderIssues_() {
+  const spreadsheet = getSpreadsheet_();
+  return Object.keys(SHEET_HEADERS).map(name => {
+    const sheet = spreadsheet.getSheetByName(name);
+    if (!sheet || sheet.getLastRow() < 2 || sheet.getLastColumn() < 1) return null;
+    // Si la pestaña ya se leyó en esta llamada, su cabecera está en memoria: no se vuelve a leer.
+    const headers = tableMemo_[name] ? tableMemo_[name].raw
+      : sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0].map(header => String(header || '').trim());
+    const check = sfmcHeaderCheck(headers, SHEET_HEADERS[name]);
+    return check.missing.length || check.renamed.length ? { sheet: name, missing: check.missing, renamed: check.renamed } : null;
+  }).filter(Boolean);
+}
+
 /** { headers, keys, rows } de una pestaña (keys: el nombre de cada columna en las filas); si no existe y optional, vacía. */
 function readTable_(name, optional) {
   if (tableMemo_[name]) return tableMemo_[name];
@@ -42,7 +59,13 @@ function readTable_(name, optional) {
   const lastColumn = sheet.getLastColumn();
   if (lastRow < 1 || lastColumn < 1) return (tableMemo_[name] = { headers: [], keys: [], rows: [] });
   const values = sheet.getRange(1, 1, lastRow, lastColumn).getValues();
-  const headers = values[0].map(header => String(header || '').trim());
+  // Una columna conocida escrita de otra forma («Open Rate») se lee con su nombre esperado.
+  const raw = values[0].map(header => String(header || '').trim());
+  const check = sfmcHeaderCheck(raw, SHEET_HEADERS[name] || []);
+  const headers = values[0].map(header => {
+    const text = String(header || '').trim();
+    return text ? check.canonical(text) : '';
+  });
   // Una cabecera repetida (List Level Opt Out viene dos veces) queda como «Nombre#columna»; los motivos la suman.
   const seen = {};
   const keys = headers.map((header, column) => {
@@ -61,5 +84,5 @@ function readTable_(name, optional) {
     });
     rows.push(row);
   }
-  return (tableMemo_[name] = { headers, keys, rows });
+  return (tableMemo_[name] = { headers, keys, rows, raw });
 }

@@ -115,6 +115,12 @@ export function createGasGlobals({ spreadsheet = createFakeSpreadsheet(), active
         const builder = {
           forSpreadsheet() { return builder; },
           onChange() { trigger.event = 'ON_CHANGE'; return builder; },
+          // Activador diario (warmCache): solo se anota la hora.
+          timeBased() { trigger.event = 'CLOCK'; return builder; },
+          everyDays(days) { trigger.everyDays = days; return builder; },
+          atHour(hour) { trigger.hour = hour; return builder; },
+          nearMinute(minute) { trigger.minute = minute; return builder; },
+          inTimezone(zone) { trigger.timezone = zone; return builder; },
           create() { triggers.push(trigger); return {}; }
         };
         return builder;

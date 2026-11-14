@@ -1,12 +1,13 @@
 // Vista Comparar: las comunicaciones elegidas lado a lado, cada una por separado (no se suman personas entre ellas).
 // Arriba, «de cada 100 personas» de cada una; abajo, en pestañas, la tabla ordenable y la matriz de motivos (qué
 // parte de la audiencia de cada comunicación cayó por cada motivo).
-import { useState } from 'preact/hooks';
+import { useEffect, useState } from 'preact/hooks';
 import { cx, dayLong, dayShort, fmtInt, fmtPct, hourOf } from '@/lib/format.mjs';
 import { useLoad } from '@/lib/useLoad.mjs';
 import { api } from '@/services/api.mjs';
 import { dataKey, openCommunication } from '@/state/app.mjs';
-import { selected, unselect, clearSelected, openSearch } from '@/state/search.mjs';
+import { selected, unselect, clearSelected, openSearch, fillSelected } from '@/state/search.mjs';
+import { csvName, downloadCsv } from '@/lib/csv.mjs';
 import { BreakableName } from '@/ui/BreakableName.jsx';
 import { Icon } from '@/ui/Icon.jsx';
 import { DESTINATION_ICONS, motiveIcon } from '@/lib/icons.mjs';
@@ -187,12 +188,28 @@ function MotiveMatrix({ items, motives }) {
   );
 }
 
+/** Comparación para Excel: una fila por comunicación, con sus tasas y la parte de la audiencia de cada motivo. */
+function exportCompare(items, motives) {
+  const columns = [
+    { label: 'Comunicación', value: item => item.name },
+    { label: 'JobID', value: item => item.job },
+    { label: 'Familia', value: item => item.family },
+    { label: 'Envío', value: item => String(item.start).replace('T', ' ') },
+    ...COLUMNS.map(column => ({ label: column.label, value: column.value })),
+    ...motives.map((motive, index) => ({ label: `${motive.name} (${motive.code})`, value: item => item.shares[index] })),
+    { label: 'Otros motivos', value: item => item.others }
+  ];
+  downloadCsv(csvName('Comparación', `${items.length} comunicaciones`), columns, items);
+}
+
 export function CompareView() {
   const [sort, setSort] = useState({ key: 'drop', dir: -1 });
   const [tab, setTab] = useState('tabla');
   const chosen = selected.value;
   const jobs = chosen.map(item => item.job);
   const [state, retry] = useLoad(jobs.length >= 2 ? `${dataKey.value}|${jobs.join(',')}` : '', () => api.getCompare(jobs), { keepPrevious: true });
+  // Las que llegaron desde un enlace (solo con su JobID) reciben su nombre y fecha.
+  useEffect(() => { if (state.data) fillSelected(state.data.items); }, [state.data]);
   if (jobs.length < 2) {
     return (
       <EmptyState icon="columns" title="Elige al menos dos comunicaciones"
@@ -219,6 +236,9 @@ export function CompareView() {
         </div>
         <span class="flex flex-wrap gap-2">
           <button type="button" class="btn" onClick={openSearch}><Icon name="search" size={16} />Agregar más</button>
+          <button type="button" class="btn" title="Descargar la comparación para abrirla en Excel" onClick={() => exportCompare(items, state.data.motives)}>
+            <Icon name="download" size={16} />Descargar
+          </button>
           <button type="button" class="btn" onClick={clearSelected}>Quitar todas</button>
         </span>
       </div>

@@ -113,6 +113,27 @@ function metricMotiveShares(records) {
   return shares;
 }
 
+/**
+ * Cuántas personas de la audiencia no reciben el correo, por destino: autosupresión del CRM, bloqueos de Marketing
+ * Cloud y rebotes, cada uno sobre la audiencia. Siempre ponderado por volumen (suma sobre suma): las medianas de cada
+ * destino no suman la mediana del total. null si no hay audiencia.
+ */
+function metricDrops(records, info) {
+  let base = 0;
+  let asl = 0;
+  let blq = 0;
+  let reb = 0;
+  records.forEach(record => {
+    if (!record.base) return;
+    const blocked = metricOriginTotal(record, 'blq', info);
+    base += record.base;
+    blq += blocked;
+    asl += Math.max(0, record.notSent - blocked);
+    reb += record.bounces;
+  });
+  return base ? { asl: asl / base, blq: blq / base, reb: reb / base, total: (asl + blq + reb) / base } : null;
+}
+
 /** Indicadores de un grupo de envíos: comunicaciones, envíos y cada tasa. */
 function metricKpis(records) {
   const metrics = {};
@@ -143,16 +164,20 @@ function metricRules(current, previous, history, byMonth, info) {
   return rules;
 }
 
-/** Familias del periodo: comunicaciones, entrega, apertura, CTOR y su apertura mes a mes. */
+/** Familias del periodo: comunicaciones, envíos, cada tasa, lo que no se envía y su apertura mes a mes. */
 function metricFamilies(current, history, byMonth) {
   const names = {};
   current.forEach(record => { (names[record.family] = names[record.family] || []).push(record); });
   return Object.keys(names).map(family => ({
     name: family,
     comms: metricDistinct(names[family]),
+    sends: names[family].length,
     deliv: metricSummary(names[family], 'deliv'),
     or: metricSummary(names[family], 'or'),
     ctor: metricSummary(names[family], 'ctor'),
+    bounce: metricSummary(names[family], 'bounce'),
+    unsub: metricSummary(names[family], 'unsub'),
+    drop: metricSummary(names[family], 'drop'),
     orSeries: history.map(month => {
       const summary = metricSummary((byMonth[month] || []).filter(record => record.family === family), 'or');
       return summary ? summary.com : null;
@@ -163,7 +188,7 @@ function metricFamilies(current, history, byMonth) {
 /**
  * Comunicaciones a revisar: las que más se alejan de la mediana de su familia en el periodo (apertura o CTOR bajos,
  * rebote o bajas altos). Solo envíos de al menos 500 personas y desvíos sobre el umbral de cada tasa (REVIEW_LIMITS:
- * las bajas son pocas y varían mucho, así que exigen el doble). Máximo 4, sin repetir maqueta.
+ * las bajas son pocas y varían mucho, así que exigen el doble). Máximo 5, sin repetir maqueta.
  */
 const REVIEW_LIMITS = Object.freeze({ or: 0.35, ctor: 0.5, bounce: 0.5, unsub: 1 });
 function metricReview(current) {
@@ -197,7 +222,7 @@ function metricReview(current) {
     if (seen[item.name]) return false;
     seen[item.name] = true;
     return true;
-  }).slice(0, 4);
+  }).slice(0, 5);
 }
 
 /** Calendario de los 3 meses que terminan en `to`: por día, comunicaciones, envíos y apertura mediana. */
@@ -255,6 +280,8 @@ function metricPeriod(records, info, from, to, context) {
     cut: cutDay ? Number(cutDay) : null,
     kpis: metricKpis(current),
     prev: metricKpis(previous),
+    drops: metricDrops(current, info),
+    prevDrops: metricDrops(previous, info),
     rules: metricRules(current, previous, context.history, context.byMonth, info),
     families: metricFamilies(current, context.history, context.byMonth),
     review: metricReview(current),
@@ -281,7 +308,9 @@ function buildOverview(records, info, today) {
     current: context.current,
     today: context.day,
     // El último mes del historial es el en curso (partial): va a medias, así que el histórico no lo cuenta.
-    history: context.history.map(month => ({ month, partial: month === context.current, ...metricKpis(context.byMonth[month] || []) })),
+    history: context.history.map(month => ({
+      month, partial: month === context.current, ...metricKpis(context.byMonth[month] || []), drops: metricDrops(context.byMonth[month] || [], info)
+    })),
     historic: metricKpis(metricInMonths(records, context.history[0], context.lastClosed)),
     periods,
     total: records.length
@@ -444,6 +473,6 @@ function buildDetail(records, info, job, today) {
 export {
   METRIC_PARTS, METRIC_KEYS, METRIC_PERIODS, METRIC_HISTORY,
   metricRate, metricQuantile, metricSummary, metricShiftMonth, metricMonthRange, metricLastClosed, metricDistinct,
-  metricMotiveShares, metricReview, metricAvailable, metricFold, metricSearchTerms, metricMatches,
+  metricMotiveShares, metricDrops, metricReview, metricAvailable, metricFold, metricSearchTerms, metricMatches,
   buildOverview, buildPeriod, buildMonth, buildDetail, buildSearch, buildCompare
 };

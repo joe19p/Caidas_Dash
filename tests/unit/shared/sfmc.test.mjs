@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { sfmcCount, sfmcDateTime, sfmcFamily, sfmcRecord, sfmcMotiveHeaders, sfmcCatalog, sfmcMotiveInfo } from '../../../src/shared/sfmc.mjs';
+import { sfmcCount, sfmcDateTime, sfmcFamily, sfmcRecord, sfmcMotiveHeaders, sfmcCatalog, sfmcMotiveInfo, sfmcHeaderCheck, sfmcHeaderKey } from '../../../src/shared/sfmc.mjs';
 
 test('sfmcCount acepta números, separadores de miles y vacíos', () => {
   assert.equal(sfmcCount(6), 6);
@@ -60,4 +60,14 @@ test('el catálogo da nombre y origen; sin catálogo se deduce por el código', 
   assert.equal(sfmcMotiveInfo('Unsubscribed Master', {}).name, 'Baja global');
   assert.equal(sfmcMotiveInfo('ASL_NUEVA', {}).origin, 'asl');
   assert.equal(sfmcMotiveInfo('ASL_NUEVA', {}).name, 'ASL_NUEVA');
+});
+
+test('sfmcHeaderCheck reconoce columnas escritas de otra forma y lista las que faltan', () => {
+  const check = sfmcHeaderCheck(['JobID', 'Open Rate', 'total notsent', 'Held'], ['JobID', 'OpenRate', 'Total NotSent', 'Sends']);
+  assert.deepEqual([...check.missing], ['Sends']);
+  assert.deepEqual(check.renamed.map(item => item.found), ['Open Rate', 'total notsent']);
+  assert.equal(check.canonical('Open Rate'), 'OpenRate');
+  // Lo que no es una columna esperada (un motivo) queda igual.
+  assert.equal(check.canonical('Held'), 'Held');
+  assert.equal(sfmcHeaderKey('Descripción Corta'), sfmcHeaderKey('descripcion_corta'));
 });

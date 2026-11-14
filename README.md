@@ -49,7 +49,9 @@ npm run build      # dist/ para producción
    (desde `.clasp.json.example`) y, si usas un proyecto de pruebas, en `.clasp.dev.json`.
 2. `npx clasp login` una vez.
 3. `npm run push` sube un build verificado. Luego, desde el editor de Apps Script, ejecuta **`setupApplication`**:
-   registra la hoja, crea las pestañas que falten e instala el activador que recalcula al cambiar la hoja.
+   registra la hoja, crea las pestañas que falten, revisa sus columnas (en el registro: las reconocidas con otro
+   nombre y las que faltan), instala el activador que recalcula al cambiar la hoja y el precálculo diario de las 00:10
+   (`warmCache`). Vuelve a ejecutarlo tras actualizar la app para instalar lo nuevo.
 4. Implementa como aplicación web (ejecutar como quien implementa, acceso del dominio) y guarda el `deploymentId`
    en `environments.json`: desde entonces `npm run deploy` actualiza la misma URL.
 
