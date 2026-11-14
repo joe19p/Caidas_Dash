@@ -204,40 +204,106 @@ function CompareTable({ items, sort, onSort }) {
   );
 }
 
+/** Cifra de una celda: «—» si no cae nadie, con un decimal bajo 1 % (así 0.4 % no parece 0 %) y entera desde ahí. */
+const cellText = value => (value < 0.0005 ? '—' : fmtPct(value, value < 0.01 ? 1 : 0));
+
 function MotiveMatrix({ items, motives }) {
+  const [sort, setSort] = useState(null);
   const values = items.flatMap(item => item.shares.concat(item.others));
   const max = Math.max(...values, 0.0001);
   const step = value => (value < 0.0005 ? 0 : Math.min(5, 1 + Math.floor((value / max) * 5)));
-  const columns = motives.map(motive => ({ name: motive.name, origin: motive.origin, key: motive.code })).concat([{ name: 'Otros motivos', origin: '', key: 'otros' }]);
+  // Columnas agrupadas por origen (primero autosupresión, luego bloqueos) y «Otros motivos» al final. index: posición
+  // del motivo en item.shares.
+  const byOrigin = origin => motives.map((motive, index) => ({ name: motive.name, origin: motive.origin, key: motive.code, index })).filter(column => column.origin === origin);
+  const groups = [['asl', 'Autosupresión del CRM', DESTINATION_ICONS.asl, 'text-asl'], ['blq', 'Bloqueos de Marketing Cloud', DESTINATION_ICONS.blq, 'text-blq']]
+    .map(([origin, label, icon, tone]) => ({ label, icon, tone, columns: byOrigin(origin) })).filter(group => group.columns.length);
+  const columns = groups.flatMap(group => group.columns).concat([{ name: 'Otros motivos', origin: '', key: 'otros', index: -1 }]);
+  const starts = new Set([columns[0].key, ...groups.map(group => group.columns[0].key), 'otros']);
+  const valueOf = (item, key) => {
+    if (key === 'name') return item.name;
+    if (key === 'total') return item.rates.drop;
+    const column = columns.find(entry => entry.key === key);
+    return column.index < 0 ? item.others : item.shares[column.index];
+  };
+  const rows = sort ? [...items].sort((a, b) => {
+    const x = valueOf(a, sort.key);
+    const y = valueOf(b, sort.key);
+    if (x == null || y == null) return x == null ? 1 : -1;
+    return (typeof x === 'string' ? x.localeCompare(y, 'es') : x - y) * sort.dir;
+  }) : items;
+  const onSort = key => setSort(previous => ({ key, dir: previous?.key === key ? -previous.dir : key === 'name' ? 1 : -1 }));
+  const arrow = key => <Icon name="down" size={12} class={cx('flex-none', sort?.key !== key && 'opacity-0', sort?.key === key && sort.dir > 0 && 'rotate-180')} />;
+  const ariaSort = key => (sort?.key === key ? (sort.dir < 0 ? 'descending' : 'ascending') : 'none');
+  const divider = key => starts.has(key) && 'border-l border-line';
   return (
     <div class="overflow-x-auto">
-      <table class="w-full border-collapse text-[13px]">
+      {/* Ancho fijo por columna: todas las celdas de motivos miden lo mismo, sin importar lo largo del nombre. */}
+      <table class="w-full min-w-[1100px] table-fixed border-collapse text-[13px]">
+        <colgroup>
+          <col class="w-[260px]" />
+          {columns.map(column => <col key={column.key} />)}
+          <col class="w-[112px]" />
+        </colgroup>
         <thead>
-          <tr class="text-xs text-ink-muted">
-            <th scope="col" class="py-2 pr-3 text-left font-semibold">Comunicación</th>
-            {columns.map(column => (
-              <th key={column.key} scope="col" class="min-w-[76px] px-1 py-2 text-center align-bottom font-semibold">
-                {column.origin && <Icon name={motiveIcon(column.key, column.origin)} size={22} class={cx('mx-auto mb-1.5 block', column.origin === 'blq' ? 'text-blq' : 'text-asl')} />}
-                {column.name}
+          <tr class="text-xs">
+            <th />
+            {groups.map(group => (
+              <th key={group.label} colSpan={group.columns.length} scope="colgroup" class="border-l border-line px-1 pt-1 font-bold text-ink">
+                <span class="flex items-center justify-center gap-1.5 border-b-2 border-line-strong pb-1.5"><Icon name={group.icon} size={15} class={group.tone} />{group.label}</span>
               </th>
             ))}
+            <th class="border-l border-line" />
+            <th class="border-l border-line" />
+          </tr>
+          <tr class="text-xs text-ink-muted">
+            <th scope="col" aria-sort={ariaSort('name')} class="py-2 pr-3 text-left align-top font-semibold">
+              <button type="button" onClick={() => onSort('name')} title="Ordenar por comunicación"
+                class={cx('inline-flex items-center gap-1 pt-[30px] hover:text-ink focus-visible:outline-2 focus-visible:outline-brand-text', sort?.key === 'name' && 'text-brand-text')}>
+                Comunicación{arrow('name')}
+              </button>
+            </th>
+            {columns.map(column => (
+              <th key={column.key} scope="col" aria-sort={ariaSort(column.key)} class={cx('px-1 py-2 align-top font-semibold', divider(column.key))}>
+                {/* Ícono arriba en un alto fijo: queda alineado en todas las columnas aunque el nombre ocupe una o dos líneas. */}
+                <button type="button" onClick={() => onSort(column.key)} title={`Ordenar por ${column.name.toLowerCase()}`}
+                  class={cx('flex w-full flex-col items-center gap-1.5 text-center leading-tight hover:text-ink focus-visible:outline-2 focus-visible:outline-brand-text', sort?.key === column.key && 'text-brand-text')}>
+                  <span class="flex h-[22px] items-center">
+                    {column.origin && <Icon name={motiveIcon(column.key, column.origin)} size={22} class={column.origin === 'blq' ? 'text-blq' : 'text-asl'} />}
+                  </span>
+                  <span>{column.name}</span>
+                  {arrow(column.key)}
+                </button>
+              </th>
+            ))}
+            <th scope="col" aria-sort={ariaSort('total')} class="border-l border-line py-2 pl-2 align-top font-semibold">
+              <button type="button" onClick={() => onSort('total')} title="Ordenar por lo que no recibe"
+                class={cx('ml-auto flex flex-col items-end gap-1.5 pt-[30px] hover:text-ink focus-visible:outline-2 focus-visible:outline-brand-text', sort?.key === 'total' && 'text-brand-text')}>
+                No recibe{arrow('total')}
+              </button>
+            </th>
           </tr>
         </thead>
         <tbody>
-          {items.map(item => (
-            <tr key={item.job} class="border-t border-line">
-              <td class="min-w-[220px] py-2 pr-3"><Who item={item} /></td>
-              {item.shares.concat(item.others).map((value, index) => {
+          {rows.map(item => (
+            <tr key={item.job} class="border-t border-line hover:bg-surface-muted/60">
+              <td class="py-2 pr-3"><Who item={item} /></td>
+              {columns.map(column => {
+                const value = valueOf(item, column.key);
                 const level = step(value);
                 return (
-                  <td key={columns[index].key} class="p-1">
-                    <span title={`${columns[index].name}: ${fmtPct(value)} de la audiencia`}
-                      class={cx('flex h-[34px] items-center justify-center rounded-md text-xs', level ? `${STEP[level]} font-bold` : 'text-line-strong')}>
-                      {level ? fmtPct(value, 0) : '—'}
+                  <td key={column.key} class={cx('p-1', divider(column.key))}>
+                    <span title={`${column.name}: ${fmtPct(value, 2)} de la audiencia`}
+                      class={cx('flex h-[36px] items-center justify-center rounded-md text-[12.5px]', level ? `${STEP[level]} font-bold` : 'text-line-strong')}>
+                      {cellText(value)}
                     </span>
                   </td>
                 );
               })}
+              {/* Total de la misma comunicación (su «no enviado»): no suma personas entre comunicaciones. */}
+              <td class="border-l border-line py-2 pr-1 pl-2 text-right">
+                <b class="block text-sm">{fmtPct(item.rates.drop)}</b>
+                <span class="text-[11.5px] text-ink-muted">de la audiencia</span>
+              </td>
             </tr>
           ))}
         </tbody>

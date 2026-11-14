@@ -51,8 +51,10 @@ Como el del cronograma, en la barra azul (atajo «/»):
     con su ícono y en dos grupos («qué pasó con la audiencia» y «cómo le fue al envío»). Desde 3 comunicaciones, la
     mejor de cada columna va en verde y la peor en rojo; al final, la mediana de las elegidas (de las tasas, sin sumar
     personas). Se ordena tocando el encabezado (también por nombre) y cada nombre abre la comunicación.
-  - **Matriz de motivos:** los 8 motivos de más peso en la selección (y «Otros motivos»); cada celda es la parte de la
-    audiencia que cayó por ese motivo, en la escala de 5 pasos.
+  - **Matriz de motivos:** los 8 motivos de más peso en la selección (y «Otros motivos»), agrupados en autosupresión
+    del CRM y bloqueos de Marketing Cloud, con columnas del mismo ancho; cada celda es la parte de la audiencia que cayó
+    por ese motivo, en la escala de 5 pasos (bajo 1 %, con un decimal). Al final, «No recibe»: el total de cada
+    comunicación. Se ordena tocando el encabezado.
 
 ## Vista general
 
