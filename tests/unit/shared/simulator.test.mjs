@@ -20,15 +20,15 @@ test('el simulador muestra solo autosupresión, con candados', () => {
   assert.equal(lists[1].delivery, 0.7);
 });
 
-test('apagar listas suma envíos, aperturas y rebotes; los candados se ignoran', () => {
+test('apagar listas suma envíos y rebotes, sin estimar aperturas; los candados se ignoran', () => {
   const none = simulate(detail, {});
   assert.equal(none.added, 0);
   assert.equal(none.sends, 1000);
   const result = simulate(detail, { ASL_NO_OPENERS: true, Exclusion_SoftBounces: true, Exclusion_HardBounces: true });
   assert.equal(result.added, 1100);
   assert.equal(result.sends, 2100);
-  // No abren: 1000 × 0.98 × (0.1 × 0.07); soft: 100 × 0.7 × (0.1 × 0.45).
-  assert.ok(Math.abs(result.addedOpens - (1000 * 0.98 * 0.007 + 100 * 0.7 * 0.045)) < 1e-9);
+  assert.equal(result.addedOpens, undefined);
+  assert.equal(simLists(detail)[0].expectedOpen, undefined);
   assert.ok(Math.abs(result.bounceRateSim - (20 + 20 + 30) / 2100) < 1e-9);
   assert.equal(simRisk(0.02), 'sano');
   assert.equal(simRisk(0.04), 'vigilar');

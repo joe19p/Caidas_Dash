@@ -41,8 +41,7 @@ function Compare({ label, now, sim, max, delta, deltaClass, danger }) {
 const SIM_COLUMNS = {
   apply: { label: 'Aplicar', value: (list, isOff) => (list.lock ? 0 : isOff(list) ? 2 : 1), first: 1 },
   name: { label: 'Lista de autosupresión', value: list => list.name, first: 1 },
-  count: { label: 'Excluye', value: list => list.count, first: -1 },
-  open: { label: 'Apertura esp.', value: list => (list.lock ? -1 : list.expectedOpen), first: -1 }
+  count: { label: 'Excluye', value: list => list.count, first: -1 }
 };
 const byDefault = (a, b) => (Boolean(b.lock) - Boolean(a.lock)) || b.count - a.count;
 
@@ -98,8 +97,7 @@ function ListTable({ lists, off, onToggle, title = '' }) {
             { label: 'Código', value: list => list.code },
             { label: 'Aplicar', value: list => (list.lock ? 'Con candado' : isOff(list) ? 'No' : 'Sí') },
             { label: 'Motivo del candado', value: list => list.lock || '' },
-            { label: 'Excluye', value: list => list.count },
-            { label: 'Apertura esperada', value: list => (list.lock ? null : list.expectedOpen) }
+            { label: 'Excluye', value: list => list.count }
           ], rows)}>
           <Icon name="download" size={15} />Descargar
         </button>
@@ -111,13 +109,12 @@ function ListTable({ lists, off, onToggle, title = '' }) {
       </div>
       {/* Con alto máximo, el encabezado queda fijo al recorrer la tabla. */}
       <div class="max-h-[70vh] overflow-auto rounded-lg border border-line">
-        <table class="w-full min-w-[520px] border-collapse text-[13px]">
+        <table class="w-full min-w-[420px] border-collapse text-[13px]">
           <thead class="sticky top-0 z-10 shadow-[0_1px_0_var(--color-line)]">
             <tr class="text-left text-xs text-ink-muted">
               {header('apply', 'w-[84px] pl-3.5')}
               {header('name')}
-              {header('count', 'text-right')}
-              {header('open', 'pr-3.5 text-right')}
+              {header('count', 'pr-3.5 text-right')}
             </tr>
           </thead>
           <tbody>
@@ -127,21 +124,20 @@ function ListTable({ lists, off, onToggle, title = '' }) {
                 <tr key={list.code} class={cx('border-t border-line', offNow && 'bg-brand-soft', list.lock && 'bg-surface-muted/60')}>
                   <td class="py-2 pr-2.5 pl-3.5">
                     {list.lock
-                      ? <span title={list.lock} class="inline-flex w-10 justify-center text-ink-muted"><Icon name="lock" size={16} label="No se puede quitar" /></span>
+                      ? <span title={list.lock} class="inline-flex w-10 justify-center text-ink-muted"><Icon name="lock" size={19} label="No se puede quitar" /></span>
                       : <Switch checked={!offNow} label={`${offNow ? 'Aplicar' : 'Dejar de aplicar'} ${list.name}`} onToggle={() => onToggle(list.code)} />}
                   </td>
                   <td class="px-2.5 py-2">
                     <span class={cx('flex items-center gap-2 text-[13px] font-semibold', list.lock ? 'text-ink-muted' : 'text-ink')} title={list.code}>
-                      <Icon name={motiveIcon(list.code, 'asl')} size={15} class={cx('flex-none', list.lock ? 'text-ink-muted' : 'text-asl')} />{list.name}
+                      <Icon name={motiveIcon(list.code, 'asl')} size={19} class={cx('flex-none', list.lock ? 'text-ink-muted' : 'text-asl')} />{list.name}
                     </span>
                     <span class="block text-[11.5px] text-ink-muted">{list.lock || `Excluye el ${fmtPct(list.share)} de lo no enviado`}</span>
                   </td>
-                  <td class={cx('px-2.5 py-2 text-right font-semibold', list.lock ? 'text-ink-muted' : 'text-ink')}>{fmtInt(list.count)}</td>
-                  <td class="py-2 pr-3.5 pl-2.5 text-right text-[12.5px] text-ink-muted">{list.lock ? '—' : fmtPct(list.expectedOpen)}</td>
+                  <td class={cx('py-2 pr-3.5 pl-2.5 text-right font-semibold', list.lock ? 'text-ink-muted' : 'text-ink')}>{fmtInt(list.count)}</td>
                 </tr>
               );
             })}
-            {!rows.length && <tr><td colSpan={4} class="px-3.5 py-6 text-center text-ink-muted">Ninguna lista coincide con «{query.trim()}».</td></tr>}
+            {!rows.length && <tr><td colSpan={3} class="px-3.5 py-6 text-center text-ink-muted">Ninguna lista coincide con «{query.trim()}».</td></tr>}
           </tbody>
         </table>
       </div>
@@ -175,10 +171,6 @@ export function SimulatorTab({ detail }) {
             <Compare label="Personas que reciben el envío" max={Math.max(record.sends, result.sends)}
               now={{ value: record.sends, text: fmtInt(record.sends) }} sim={{ value: result.sends, text: fmtInt(result.sends) }}
               delta={`${result.added > 0 ? '+' : ''}${fmtInt(result.added)}`} deltaClass={result.added > 0 ? 'text-success' : 'text-ink-muted'} />
-            <Compare label="Aperturas estimadas" max={Math.max(record.opens, result.opens)}
-              now={{ value: record.opens, text: fmtInt(record.opens) }} sim={{ value: result.opens, text: fmtInt(result.opens) }}
-              delta={`${result.addedOpens > 0 ? '+' : ''}${fmtInt(result.addedOpens)} (${record.opens ? ((result.addedOpens / record.opens) * 100).toFixed(1) : '0.0'}%)`}
-              deltaClass={result.addedOpens > 0 ? 'text-success' : 'text-ink-muted'} />
             <Compare label="Tasa de rebote" max={0.1}
               now={{ value: result.bounceRate, text: fmtPct(result.bounceRate, 2) }} sim={{ value: result.bounceRateSim, text: fmtPct(result.bounceRateSim, 2) }}
               delta={fmtPts(bounceDelta, 2)} deltaClass={bounceDelta > 0.0005 ? 'text-danger' : 'text-ink-muted'} danger={result.bounceRateSim > 0.03} />
@@ -187,7 +179,7 @@ export function SimulatorTab({ detail }) {
               <span class="flex flex-col gap-0.5"><b>{risk[1]}</b><span class="text-[12.5px]">{risk[2]}</span></span>
             </div>
             <p class="text-[11.5px] leading-snug text-ink-muted">
-              Supuestos por validar: entrega igual a la de este envío (70 % si tuvo rebote soft) y la apertura esperada de cada lista como fracción de la de este envío.
+              Supuesto por validar: entrega igual a la de este envío (70 % si tuvo rebote soft). No estima aperturas: a quien se excluye nunca se le envió, así que no hay datos para saber cuánto abriría.
               No cuenta a quienes caerían en otra lista activa. Los bloqueos de Marketing Cloud no se pueden quitar, y las listas con candado tampoco (ley, reputación o fallecidos).
             </p>
           </div>

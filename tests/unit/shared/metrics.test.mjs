@@ -125,6 +125,8 @@ test('buildMonth y buildDetail', () => {
   assert.equal(detail.motives[0].share, 400 / 600);
   assert.equal(detail.asl, 400);
   assert.equal(detail.blq, 200);
+  assert.equal(detail.rates.complaint, 0);
+  assert.equal(detail.normal.rates.complaint, 0);
   const per100 = Object.values(detail.normal.per100).reduce((sum, value) => sum + value, 0);
   assert.ok(Math.abs(per100 - 100) < 1e-9);
   assert.equal(buildDetail(records, info, 'nope', '2026-11-14'), null);

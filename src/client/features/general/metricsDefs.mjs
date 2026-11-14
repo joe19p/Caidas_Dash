@@ -16,12 +16,12 @@ export const SECONDARY = ['deliv', 'ctor', 'bounce', 'unsub'];
 export const METRIC_ICONS = {
   comms: ['mail', 'bg-brand-soft text-brand-text'],
   audience: ['users', 'bg-brand-soft text-brand-text'],
-  drop: ['suppressed', 'bg-asl-soft text-asl-ink'],
-  sends: ['send', 'bg-brand-soft text-brand-text'],
-  deliv: ['inbox', 'bg-success-soft text-success'],
+  drop: ['mailX', 'bg-asl-soft text-asl-ink'],
+  sends: ['mailSend', 'bg-brand-soft text-brand-text'],
+  deliv: ['mailCheck', 'bg-success-soft text-success'],
   or: ['mailOpen', 'bg-brand-soft text-brand-text'],
   ctor: ['click', 'bg-brand-soft text-brand-text'],
-  bounce: ['bounce', 'bg-danger-soft text-danger-ink'],
+  bounce: ['mailBounce', 'bg-danger-soft text-danger-ink'],
   unsub: ['userMinus', 'bg-danger-soft text-danger-ink']
 };
 

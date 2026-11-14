@@ -90,11 +90,16 @@ Pestañas:
   Cuatro niveles (origen, procesamiento, cuatro pilares, engagement y desgloses) unidos por flechas del color del
   destino; en pantallas angostas se apilan. Debajo, la tabla «Mapeo de motivos de caída» (volumen, % sobre caídas,
   % de la audiencia y descripción), ordenable.
-- **Resumen:** audiencia, no enviados, enviados, entrega, apertura y CTOR contra lo normal; «de cada 100 personas»
-  (cuadrícula y tabla con lo normal); por qué no se envió (8 motivos con su peso normal); entrega y tipo de rebote;
-  interacción.
-- **Motivos de no envío:** Pareto con el acumulado, cuántos motivos explican el 80 % y el peso normal de cada uno.
-- **Simulador:** apagar listas de autosupresión y ver personas que recibirían, aperturas estimadas y tasa de rebote.
+- **Resumen:** audiencia, no enviados, enviados, entrega, apertura y CTOR contra lo normal. Debajo, en dos filas:
+  «de cada 100 personas» (cuadrícula y tabla con lo normal) junto a la entrega (anillo de lo enviado y un árbol:
+  enviados, que se abre en entregados y rebotes, y los rebotes en hard, soft y otros), y por qué no se envió (8 motivos, uno por línea con su peso normal y las personas) junto a la
+  interacción (apertura, CTOR, bajas y quejas contra lo normal, y su tabla). Las columnas se separan con una línea; las
+  tablas de destino y de motivos se ordenan tocando el encabezado.
+- **Motivos de no envío:** Pareto con el acumulado, cuántos motivos explican el 80 % y el peso normal de cada uno. Al
+  pasar el mouse nada cambia de tamaño: se aclaran las otras barras, sale su detalle y se marca su fila. Debajo, la tabla
+  de todos los motivos (personas, % de lo no enviado, acumulado, lo normal y la diferencia), ordenable y para Excel.
+- **Simulador:** apagar listas de autosupresión y ver personas que recibirían y tasa de rebote. No estima aperturas: a
+  quien se excluye nunca se le envió, así que no hay datos para saber cuánto abriría.
   Supuestos en `src/shared/simulator.mjs`; las listas legales o de reputación y los bloqueos de SFMC no se pueden quitar.
 
 ## Rapidez y datos guardados
@@ -122,7 +127,7 @@ Pestañas:
 - **Estado en el enlace** (`state/route.mjs`): la dirección guarda la vista, el periodo, la comunicación abierta (mes,
   día, envío y pestaña) o las comunicaciones que se comparan (`#v=compare&envios=1,2`). Un enlace se puede compartir y
   el botón Atrás vuelve a lo anterior. Un enlace con valores inválidos abre la vista general.
-- **Descargar para Excel** (`lib/csv.mjs`): Comparar, las familias de la vista general, la tabla de motivos y la del
+- **Descargar para Excel** (`lib/csv.mjs`): Comparar, las familias de la vista general, la tabla de motivos (Funnel y Motivos) y la del
   Simulador bajan un CSV en UTF-8 con las cifras como número (las tasas en 0.1234) y la tabla tal como se ve (búsqueda y
   orden).
 - **Columnas de la hoja:** una columna conocida escrita de otra forma («Open Rate», «open_rate») se lee como la

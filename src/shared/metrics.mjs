@@ -16,7 +16,8 @@ const METRIC_PARTS = Object.freeze({
   ctor: ['clicks', 'opens'],
   bounce: ['bounces', 'sends'],
   unsub: ['unsubs', 'deliv'],
-  drop: ['notSent', 'base']
+  drop: ['notSent', 'base'],
+  complaint: ['complaints', 'deliv']
 });
 const METRIC_KEYS = Object.freeze(['deliv', 'or', 'ctor', 'bounce', 'unsub']);
 const METRIC_PERIODS = Object.freeze([1, 3, 6, 12]);
@@ -434,7 +435,8 @@ function buildDetail(records, info, job, today) {
   if (!window.length) window = records;
   const rates = {};
   const normalRates = {};
-  METRIC_KEYS.concat(['drop']).forEach(key => {
+  // Quejas solo en el detalle: la vista general no las muestra.
+  METRIC_KEYS.concat(['drop', 'complaint']).forEach(key => {
     rates[key] = metricRate(record, key);
     const summary = metricSummary(window, key);
     normalRates[key] = summary ? summary.com : null;

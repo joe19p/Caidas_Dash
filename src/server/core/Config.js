@@ -7,7 +7,7 @@ const APP = Object.freeze({
   TITLE: 'Caídas de email',
   // Formato de lo que se guarda en caché (servidor y navegador). Subirlo cuando cambie la forma de lo calculado: así
   // una versión nueva del código no lee lo que guardó la anterior.
-  CACHE_SCHEMA: 6,
+  CACHE_SCHEMA: 7,
   TIMEZONE: 'America/Lima',
   PROPERTIES: Object.freeze({
     SPREADSHEET_ID: 'APP_SPREADSHEET_ID',
