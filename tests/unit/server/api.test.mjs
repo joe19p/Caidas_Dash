@@ -73,10 +73,40 @@ test('refreshData y onDataChange dejan la caché sin uso', () => {
   assert.equal(Number(props.get('APP_DATA_VERSION')), Number(before) + 2);
 });
 
+test('getPeriod arma un periodo a elección y rechaza los que no existen', () => {
+  const { context } = loadGas({ spreadsheet: sheet([
+    send({ job: 1, start: '10/5/2026 9:00:00 AM' }), send({ job: 2, start: '9/5/2026 9:00:00 AM' }), send({ job: 3, start: '7/5/2026 9:00:00 AM' })
+  ]) });
+  const period = context.getPeriod('2026-09', '2026-10');
+  assert.deepEqual([period.from, period.to, period.prevFrom, period.prevTo], ['2026-09', '2026-10', '2026-07', '2026-08']);
+  assert.equal(period.kpis.sends, 2);
+  assert.equal(period.prev.sends, 1);
+  const future = `${Number(new Date().getFullYear()) + 1}-01`;
+  [['2026-10', '2026-09'], ['2026-1', '2026-10'], ['2026-10', future], ['2020-01', '2026-10']].forEach(([from, to]) => {
+    assert.throws(() => context.getPeriod(from, to), error => failure(error).code === 'PERIOD_INVALID', `${from} – ${to}`);
+  });
+});
+
+test('searchCommunications busca en todos los meses y getCompare valida la selección', () => {
+  const { context } = loadGas({ spreadsheet: sheet([
+    send({ job: 1, name: '20261005_PROMO_VIAJES', start: '10/5/2026 9:00:00 AM' }),
+    send({ job: 2, name: '20260705_CYBER_TC', start: '7/5/2026 9:00:00 AM' }),
+    send({ job: 3, name: '20260706_PROMO_FONDOS', start: '7/6/2026 9:00:00 AM' })
+  ]) });
+  assert.deepEqual([...context.searchCommunications('promo', 'O').items.map(item => item.job)], ['1', '3']);
+  assert.equal(context.searchCommunications('promo, cyber', 'Y').total, 0);
+  assert.equal(context.searchCommunications('', 'O').total, 0);
+  const compare = context.getCompare(['1', '2']);
+  assert.equal(compare.items.length, 2);
+  [[], ['1'], ['1', '1'], Array.from({ length: 51 }, (_, index) => String(index))].forEach(jobs => {
+    assert.throws(() => context.getCompare(jobs), error => failure(error).code === 'COMPARE_INVALID', jobs.join(','));
+  });
+});
+
 test('la vista general lleva la clave de los datos para el navegador, y cambia al actualizar', () => {
   const { context } = loadGas({ spreadsheet: sheet([send({ job: 1, start: '10/5/2026 9:00:00 AM' })]) });
   const key = context.getCacheKey();
-  assert.match(key, /^v\d+:\d{4}-\d{2}-\d{2}$/);
+  assert.match(key, /^s\d+:v\d+:\d{4}-\d{2}-\d{2}$/);
   assert.equal(context.getOverview().cacheKey, key);
   const refreshed = context.refreshData();
   assert.notEqual(refreshed.cacheKey, key);

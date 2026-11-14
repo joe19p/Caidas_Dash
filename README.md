@@ -7,9 +7,12 @@ Vite en tres archivos: `dist/Code.gs`, `dist/Index.html` (JS y CSS integrados) y
 ## Qué hace
 
 - **Vista general** (para gerencia): comunicaciones distintas enviadas y open rate frente a su histórico; entrega, CTOR,
-  rebote y bajas; línea de tiempo de 24 meses con la mitad central de las comunicaciones; calendario de los últimos 3
-  meses; familias de comunicación; reglas de protección aplicadas y comunicaciones a revisar. Periodos de mes cerrado:
-  **Mes cerrado, U3M, U6M y U12M**, comparados con el periodo anterior. Nunca suma personas entre comunicaciones.
+  rebote y bajas; línea de tiempo de 24 meses y el mes en curso, con la mitad central de las comunicaciones; calendario
+  de 3 meses; familias de comunicación; reglas de protección aplicadas y comunicaciones a revisar. El periodo se elige
+  en la barra azul: **un mes, 3, 6 o 12 meses o un rango**; abre en el mes en curso (hasta hoy, comparado con los mismos
+  días del mes anterior). Nunca suma personas entre comunicaciones.
+- **Buscador y Comparar**: buscador en la barra con palabras O / Y (en el mes o en todos los meses); se eligen varias
+  comunicaciones y se comparan lado a lado: de cada 100 personas, tabla ordenable y matriz de motivos.
 - **Por comunicación**: se elige el día, se busca la comunicación y se ve solo lo de ella, en tres pestañas:
   **Resumen** (de cada 100 personas, por qué no se envió, entrega, interacción, todo contra lo normal), **Motivos de no
   envío** (Pareto) y **Simulador** (qué pasaría si no se aplicara una lista; estimación con supuestos a la vista).

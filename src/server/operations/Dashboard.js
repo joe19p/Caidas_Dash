@@ -14,6 +14,40 @@ function overviewData_() {
   });
 }
 
+const PERIOD_MAX_MONTHS = 36;
+
+/** Un periodo a elección (meses «AAAA-MM» from–to, hasta el mes en curso), comparado con el anterior del mismo largo. */
+function periodData_(from, to) {
+  const month = /^\d{4}-\d{2}$/;
+  const current = isoDate_().slice(0, 7);
+  const valid = month.test(String(from || '')) && month.test(String(to || '')) && from <= to && to <= current
+    && metricMonthRange(from, to).length <= PERIOD_MAX_MONTHS;
+  assert_(valid, 'PERIOD_INVALID');
+  return cachedJson_(`period:v${dataVersion_()}:${isoDate_()}:${from}:${to}`, () =>
+    buildPeriod(loadRecords_(), motiveInfoFn_(motiveCatalog_()), from, to, isoDate_()));
+}
+
+const SEARCH_LIMIT = 200;
+const COMPARE_MAX = 50;
+
+/** Búsqueda en todos los envíos (palabras separadas por coma; mode 'Y' todas, 'O' alguna). */
+function searchData_(query, mode) {
+  const terms = metricSearchTerms(query);
+  const joined = mode === 'Y' ? 'Y' : 'O';
+  if (!terms.length) return { terms: [], mode: joined, total: 0, items: [] };
+  return cachedJson_(`search:v${dataVersion_()}:${joined}:${terms.join(',')}`, () =>
+    buildSearch(loadRecords_(), motiveInfoFn_(motiveCatalog_()), terms.join(','), joined, SEARCH_LIMIT));
+}
+
+/** Varias comunicaciones lado a lado (de 2 a COMPARE_MAX JobID, sin repetir). */
+function compareData_(jobs) {
+  const list = (Array.isArray(jobs) ? jobs : []).map(job => String(job == null ? '' : job).trim()).filter(Boolean);
+  const unique = list.filter((job, index) => list.indexOf(job) === index);
+  assert_(unique.length >= 2 && unique.length <= COMPARE_MAX, 'COMPARE_INVALID', { max: COMPARE_MAX });
+  return cachedJson_(`compare:v${dataVersion_()}:${unique.join(',')}`, () =>
+    buildCompare(loadRecords_(), motiveInfoFn_(motiveCatalog_()), unique));
+}
+
 /** Envíos de un mes para elegir día y comunicación. */
 function monthData_(month) {
   assert_(/^\d{4}-\d{2}$/.test(String(month || '')), 'MONTH_INVALID');

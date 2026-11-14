@@ -25,6 +25,12 @@ const month = (call, value) => remembered(`month:${value}`, () => cached(`month:
 export const api = {
   getOverview: () => callServer('getOverview'),
   getCacheKey: () => callServerQuietly('getCacheKey'),
+  /** Un periodo a elección (los que terminan en el mes en curso ya vienen en la vista general). */
+  getPeriod: (from, to) => remembered(`period:${from}:${to}`, () => cached(`period:${from}:${to}`, () => callServer('getPeriod', from, to))),
+  /** Búsqueda en todos los meses (palabras separadas por coma; 'O' alguna, 'Y' todas). */
+  searchAll: (query, mode) => remembered(`search:${mode}:${query}`, () => cached(`search:${mode}:${query}`, () => callServer('searchCommunications', query, mode))),
+  /** Varias comunicaciones lado a lado. */
+  getCompare: jobs => remembered(`compare:${jobs.join(',')}`, () => cached(`compare:${jobs.join(',')}`, () => callServer('getCompare', jobs))),
   getMonth: value => month(callServer, value),
   /** Igual que getMonth, sin barra de carga: para tenerlo listo antes de que se pida. */
   prefetchMonth: value => month(callServerQuietly, value),

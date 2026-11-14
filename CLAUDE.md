@@ -13,7 +13,10 @@ Funcionalidades en `docs/FUNCIONALIDADES.md`.
 - **Plan antes de cambiar** cuando el pedido abarca varias cosas: plan por fases y esperar aprobación.
 - **Maqueta antes de rediseñar** una pantalla o componente visible (artifact privado), luego implementar.
 - **No sumar personas entre comunicaciones** en la vista general: una misma persona está en muchas. Lo general se
-  cuenta en comunicaciones y se mide en tasas (mediana por comunicación o ponderado por volumen), por meses cerrados.
+  cuenta en comunicaciones y se mide en tasas (mediana por comunicación o ponderado por volumen), por meses. El mes en
+  curso entra hasta hoy y se compara con los mismos días del periodo anterior (nunca un mes a medias contra uno entero).
+- **Formato de caché:** si cambia la forma de lo calculado (vista general, periodo, mes, detalle), subir
+  `APP.CACHE_SCHEMA` en `src/server/core/Config.js`: invalida la caché del servidor y la del navegador.
 
 ## Convenciones del código
 

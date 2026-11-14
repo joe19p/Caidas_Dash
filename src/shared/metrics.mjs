@@ -6,7 +6,7 @@
  * cuenta en comunicaciones y se mide en tasas, de dos formas:
  *   - com: mediana por comunicación (cada envío pesa igual); con su mitad central (del 25 % al 75 %).
  *   - vol: ponderada por volumen (suma de numeradores sobre suma de denominadores).
- * Los meses son cerrados: el mes en curso no entra hasta que termina.
+ * El mes en curso entra hasta el día de hoy y se compara con los mismos días del periodo anterior (metricPeriod).
  */
 
 /** Numerador y denominador de cada tasa. */
@@ -200,11 +200,11 @@ function metricReview(current) {
   }).slice(0, 4);
 }
 
-/** Calendario de los últimos 3 meses cerrados: por día, comunicaciones, envíos y apertura mediana. */
-function metricCalendar(records, lastClosed) {
-  const from = metricShiftMonth(lastClosed, -2);
+/** Calendario de los 3 meses que terminan en `to`: por día, comunicaciones, envíos y apertura mediana. */
+function metricCalendar(records, to) {
+  const from = metricShiftMonth(to, -2);
   const byDay = {};
-  metricInMonths(records, from, lastClosed).forEach(record => {
+  metricInMonths(records, from, to).forEach(record => {
     const day = record.start.slice(0, 10);
     (byDay[day] = byDay[day] || []).push(record);
   });
@@ -213,54 +213,163 @@ function metricCalendar(records, lastClosed) {
     const or = metricSummary(byDay[day], 'or');
     days[day] = { comms: metricDistinct(byDay[day]), sends: byDay[day].length, or: or ? or.com : null };
   });
-  return { from, to: lastClosed, days };
+  return { from, to, days };
 }
 
-/**
- * Todo lo de la vista general, para los cuatro periodos a la vez (el cliente cambia de periodo sin volver a pedir).
- * info(código) da { name, origin } de cada motivo.
- */
-function buildOverview(records, info, today) {
-  const lastClosed = metricLastClosed(today);
-  const history = metricMonthRange(metricShiftMonth(lastClosed, -(METRIC_HISTORY - 1)), lastClosed);
+/** Envíos de los meses from–to; con cutDay («DD»), el último mes solo hasta ese día. */
+function metricInPeriod(records, from, to, cutDay) {
+  return records.filter(record => {
+    const month = record.start.slice(0, 7);
+    if (month < from || month > to) return false;
+    return !cutDay || month !== to || record.start.slice(8, 10) <= cutDay;
+  });
+}
+
+/** Lo que comparten los periodos: mes en curso, historial (24 meses cerrados y el en curso) y envíos por mes. */
+function metricContext(records, today) {
+  const day = String(today).slice(0, 10);
+  const current = day.slice(0, 7);
+  const lastClosed = metricShiftMonth(current, -1);
+  const history = metricMonthRange(metricShiftMonth(lastClosed, -(METRIC_HISTORY - 1)), current);
   const byMonth = {};
   records.forEach(record => {
     const month = record.start.slice(0, 7);
     (byMonth[month] = byMonth[month] || []).push(record);
   });
-  const historyRecords = metricInMonths(records, history[0], lastClosed);
+  return { day, current, lastClosed, history, byMonth };
+}
+
+/**
+ * Un periodo de meses (from–to) comparado con el anterior del mismo largo. Si llega al mes en curso, se corta en el
+ * día de hoy y el anterior también corta en ese día: un mes a medias se compara con los mismos días de antes.
+ */
+function metricPeriod(records, info, from, to, context) {
+  const cutDay = to === context.current ? context.day.slice(8, 10) : '';
+  const size = metricMonthRange(from, to).length;
+  const prevTo = metricShiftMonth(from, -1);
+  const prevFrom = metricShiftMonth(prevTo, -(size - 1));
+  const current = metricInPeriod(records, from, to, cutDay);
+  const previous = metricInPeriod(records, prevFrom, prevTo, cutDay);
+  return {
+    from, to, prevFrom, prevTo,
+    cut: cutDay ? Number(cutDay) : null,
+    kpis: metricKpis(current),
+    prev: metricKpis(previous),
+    rules: metricRules(current, previous, context.history, context.byMonth, info),
+    families: metricFamilies(current, context.history, context.byMonth),
+    review: metricReview(current),
+    calendar: metricCalendar(records, to)
+  };
+}
+
+/** Un periodo cualquiera (para getPeriod). from y to son «AAAA-MM»; to no pasa del mes en curso. */
+function buildPeriod(records, info, from, to, today) {
+  return metricPeriod(records, info, from, to, metricContext(records, today));
+}
+
+/**
+ * Todo lo de la vista general: el historial y los periodos que terminan en el mes en curso (1, 3, 6 y 12 meses), así
+ * abre sin otra llamada. Otros periodos se piden con buildPeriod. info(código) da { name, origin } de cada motivo.
+ */
+function buildOverview(records, info, today) {
+  const context = metricContext(records, today);
   const periods = {};
   METRIC_PERIODS.forEach(months => {
-    const from = metricShiftMonth(lastClosed, -(months - 1));
-    const prevTo = metricShiftMonth(from, -1);
-    const prevFrom = metricShiftMonth(prevTo, -(months - 1));
-    const current = metricInMonths(records, from, lastClosed);
-    const previous = metricInMonths(records, prevFrom, prevTo);
-    periods[months] = {
-      from, to: lastClosed, prevFrom, prevTo,
-      kpis: metricKpis(current),
-      prev: metricKpis(previous),
-      rules: metricRules(current, previous, history, byMonth, info),
-      families: metricFamilies(current, history, byMonth),
-      review: metricReview(current)
-    };
+    periods[months] = metricPeriod(records, info, metricShiftMonth(context.current, -(months - 1)), context.current, context);
   });
   return {
-    lastClosed,
-    history: history.map(month => ({ month, ...metricKpis(byMonth[month] || []) })),
-    historic: metricKpis(historyRecords),
+    current: context.current,
+    today: context.day,
+    // El último mes del historial es el en curso (partial): va a medias, así que el histórico no lo cuenta.
+    history: context.history.map(month => ({ month, partial: month === context.current, ...metricKpis(context.byMonth[month] || []) })),
+    historic: metricKpis(metricInMonths(records, context.history[0], context.lastClosed)),
     periods,
-    calendar: metricCalendar(records, lastClosed),
     total: records.length
   };
 }
 
-/** Resumen corto de un envío para la lista del día. */
+/** El motivo que más personas dejó sin envío: { code, name, origin, count } o null. */
+function metricTopMotive(record, info) {
+  let best = '';
+  Object.keys(record.motives).forEach(code => { if (!best || record.motives[code] > record.motives[best]) best = code; });
+  if (!best || !record.motives[best]) return null;
+  return { code: best, name: info(best).name, origin: info(best).origin, count: record.motives[best] };
+}
+
+/** Resumen corto de un envío para la lista del día y los resultados de búsqueda. */
 function metricListItem(record, info) {
   return {
     job: record.job, name: record.name, family: record.family, start: record.start,
     base: record.base, sends: record.sends, deliv: record.deliv, bounces: record.bounces,
-    asl: metricOriginTotal(record, 'asl', info), blq: metricOriginTotal(record, 'blq', info)
+    asl: metricOriginTotal(record, 'asl', info), blq: metricOriginTotal(record, 'blq', info),
+    top: metricTopMotive(record, info)
+  };
+}
+
+/** Texto sin tildes y en mayúsculas, para buscar sin distinguirlas. */
+function metricFold(text) {
+  return String(text == null ? '' : text).normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase();
+}
+
+/** Palabras de una búsqueda, separadas por coma (como en el cronograma): «promo, Cyber ,» → ['PROMO', 'CYBER']. */
+function metricSearchTerms(query) {
+  return String(query == null ? '' : query).split(',').map(term => metricFold(term).trim()).filter(Boolean);
+}
+
+/** Si un envío coincide con las palabras (ya pasadas por metricSearchTerms): Y, todas; O, alguna. Nombre, JobID y familia. */
+function metricMatches(item, terms, mode) {
+  if (!terms.length) return true;
+  const haystack = metricFold(`${item.name}\n${item.job}\n${item.family}`);
+  const found = term => haystack.indexOf(term) !== -1;
+  return mode === 'Y' ? terms.every(found) : terms.some(found);
+}
+
+/**
+ * Búsqueda en todos los envíos: los más recientes primero y el JobID exacto antes que todo. Devuelve hasta `limit`
+ * resúmenes y cuántos coinciden en total.
+ */
+function buildSearch(records, info, query, mode, limit) {
+  const terms = metricSearchTerms(query);
+  const matching = terms.length ? records.filter(record => metricMatches(record, terms, mode)) : [];
+  const exact = record => terms.indexOf(metricFold(record.job)) !== -1;
+  matching.sort((a, b) => (exact(b) - exact(a)) || (a.start < b.start ? 1 : a.start > b.start ? -1 : 0));
+  return { terms, mode, total: matching.length, items: matching.slice(0, limit).map(record => metricListItem(record, info)) };
+}
+
+/** Motivos que se muestran en la comparación (los de más peso en la selección); el resto va junto en «Otros». */
+const METRIC_COMPARE_MOTIVES = 8;
+
+/**
+ * Varias comunicaciones lado a lado, cada una por separado (no se suman personas entre ellas): destino de la
+ * audiencia, tasas, motivo principal y, para la matriz, qué parte de su audiencia cayó por cada motivo.
+ */
+function buildCompare(records, info, jobs) {
+  const byJob = {};
+  records.forEach(record => { byJob[record.job] = record; });
+  const wanted = jobs.map(String);
+  const found = wanted.map(job => byJob[job]).filter(Boolean);
+  const weight = {};
+  found.forEach(record => Object.keys(record.motives).forEach(code => {
+    weight[code] = (weight[code] || 0) + (record.base ? record.motives[code] / record.base : 0);
+  }));
+  const codes = Object.keys(weight).filter(code => weight[code] > 0).sort((a, b) => weight[b] - weight[a]).slice(0, METRIC_COMPARE_MOTIVES);
+  const items = found.map(record => {
+    const blq = metricOriginTotal(record, 'blq', info);
+    const shareOf = count => (record.base ? count / record.base : 0);
+    const rates = {};
+    METRIC_KEYS.concat(['drop']).forEach(key => { rates[key] = metricRate(record, key); });
+    return {
+      ...metricListItem(record, info),
+      notSent: record.notSent, opens: record.opens, clicks: record.clicks, rates,
+      asl: Math.max(0, record.notSent - blq), blq,
+      shares: codes.map(code => shareOf(record.motives[code] || 0)),
+      others: shareOf(Object.keys(record.motives).filter(code => codes.indexOf(code) === -1).reduce((sum, code) => sum + record.motives[code], 0))
+    };
+  });
+  return {
+    items,
+    motives: codes.map(code => ({ code, name: info(code).name, origin: info(code).origin })),
+    missing: wanted.filter(job => !byJob[job])
   };
 }
 
@@ -335,5 +444,6 @@ function buildDetail(records, info, job, today) {
 export {
   METRIC_PARTS, METRIC_KEYS, METRIC_PERIODS, METRIC_HISTORY,
   metricRate, metricQuantile, metricSummary, metricShiftMonth, metricMonthRange, metricLastClosed, metricDistinct,
-  metricMotiveShares, metricReview, metricAvailable, buildOverview, buildMonth, buildDetail
+  metricMotiveShares, metricReview, metricAvailable, metricFold, metricSearchTerms, metricMatches,
+  buildOverview, buildPeriod, buildMonth, buildDetail, buildSearch, buildCompare
 };

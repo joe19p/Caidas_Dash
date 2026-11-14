@@ -6,8 +6,20 @@
 
 const CACHE_SECONDS = 6 * 60 * 60;
 const CACHE_CHUNK = 90000;
+// CacheService admite claves de hasta 250 caracteres; los trozos agregan «:N».
+const CACHE_KEY_MAX = 200;
 
-function cachedJson_(key, build) {
+/** Huella corta (FNV-1a, base 36) de un texto: para claves largas (una comparación de 50 envíos, una búsqueda larga). */
+function cacheFingerprint_(text) {
+  let hash = 2166136261;
+  for (let index = 0; index < text.length; index++) hash = Math.imul(hash ^ text.charCodeAt(index), 16777619);
+  return (hash >>> 0).toString(36);
+}
+
+function cachedJson_(name, build) {
+  // Con el formato en la clave: tras publicar una versión con otra forma de datos, no se lee lo de la anterior.
+  const full = `s${APP.CACHE_SCHEMA}:${name}`;
+  const key = full.length > CACHE_KEY_MAX ? `${full.slice(0, 120)}~${full.length}~${cacheFingerprint_(full)}` : full;
   const cache = CacheService.getScriptCache();
   try {
     const count = Number(cache.get(key));

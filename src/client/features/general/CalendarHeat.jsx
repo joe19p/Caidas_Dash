@@ -1,4 +1,4 @@
-// Calendario de los últimos 3 meses cerrados: cada día con sus comunicaciones o su apertura, en una escala de 5 pasos.
+// Calendario de los 3 meses que terminan en el periodo elegido: cada día con sus comunicaciones o su apertura, en una escala de 5 pasos.
 // Al elegir un día se ve su resumen y el enlace a sus comunicaciones.
 import { useState } from 'preact/hooks';
 import { cx, fmtPct, dayLong, dayShort, addDays, weekdayIndex, monthRange, MONTHS, WEEKDAYS } from '@/lib/format.mjs';
@@ -61,7 +61,7 @@ export function CalendarHeat({ calendar }) {
       <div class="flex flex-wrap items-start justify-between gap-2.5">
         <div>
           <h2 id="cal-t" class="text-base font-bold">Calendario de envíos: {monthRange(calendar.from, calendar.to)}</h2>
-          <p class="mt-0.5 text-[12.5px] text-ink-muted">Últimos 3 meses cerrados. Elige un día para ver su resumen e ir a sus comunicaciones.</p>
+          <p class="mt-0.5 text-[12.5px] text-ink-muted">Los 3 meses que terminan en el periodo elegido. Elige un día para ver su resumen e ir a sus comunicaciones.</p>
         </div>
         <Segmented label="Qué mostrar en el calendario" value={metric} onChange={setMetric}
           options={[{ value: 'comms', label: 'Comunicaciones por día' }, { value: 'or', label: 'Apertura' }]} />

@@ -1,6 +1,6 @@
 // Pestaña Funnel (la que abre por defecto): el «Funnel de procesamiento de audiencia» del reporte original, en pequeño.
-// Cuatro niveles (origen, procesamiento, cuatro pilares, engagement y desgloses) unidos por flechas del color del
-// destino, y debajo la tabla de motivos del reporte original. Sirve de puente para quien venía de esa pantalla.
+// Cuatro niveles (origen, procesamiento, cuatro pilares, engagement y desgloses) unidos por conectores en escuadra del
+// color del destino, y debajo la tabla de motivos del reporte original, agrupada por origen. Sirve de puente para quien venía de esa pantalla.
 import { useLayoutEffect, useRef, useState } from 'preact/hooks';
 import { cx, fmtInt, fmtPct } from '@/lib/format.mjs';
 
@@ -27,12 +27,20 @@ function useArrows(container, nodes) {
         const a = nodes.current[from]?.getBoundingClientRect();
         const b = nodes.current[to]?.getBoundingClientRect();
         if (!a || !b) return null;
-        const x1 = a.right - outer.left + 2;
-        const y1 = a.top + a.height / 2 - outer.top;
-        const x2 = b.left - outer.left - 4;
-        const y2 = b.top + b.height / 2 - outer.top;
-        const mid = (x1 + x2) / 2;
-        return { key: `${from}-${to}`, color, d: `M${x1},${y1} C${mid},${y1} ${mid},${y2} ${x2},${y2}`, tip: `M${x2 - 7},${y2 - 5} L${x2 + 1},${y2} L${x2 - 7},${y2 + 5} Z` };
+        // Conector en escuadra: sale del borde, baja o sube por el medio del espacio entre columnas (esquinas
+        // redondeadas) y entra recto a la caja. Sin curvas que se crucen.
+        const x1 = Math.round(a.right - outer.left);
+        const y1 = Math.round(a.top + a.height / 2 - outer.top);
+        const x2 = Math.round(b.left - outer.left - 3);
+        const y2 = Math.round(b.top + b.height / 2 - outer.top);
+        const mid = Math.round((x1 + x2) / 2);
+        const dy = y2 - y1;
+        const radius = Math.min(10, Math.abs(dy) / 2, (x2 - x1) / 4);
+        const turn = Math.sign(dy) * radius;
+        const d = Math.abs(dy) < 2
+          ? `M${x1},${y1} H${x2}`
+          : `M${x1},${y1} H${mid - radius} Q${mid},${y1} ${mid},${y1 + turn} V${y2 - turn} Q${mid},${y2} ${mid + radius},${y2} H${x2}`;
+        return { key: `${from}-${to}`, color, x1, y1, d, tip: `M${x2 - 6},${y2 - 5} L${x2},${y2} L${x2 - 6},${y2 + 5}` };
       }).filter(Boolean) : [];
       setState({ wide, paths });
     };
@@ -76,21 +84,28 @@ function topOf(motives, origin, total, otherLabel) {
   return top;
 }
 
+const ORIGINS = [
+  ['asl', 'Autosupresión (CRM)', 'bg-asl', 'Listas del CRM que excluyen a propósito.'],
+  ['blq', 'Bloqueo preventivo (Marketing Cloud)', 'bg-blq', 'Estados en los que Marketing Cloud no intenta entregar.']
+];
 const SORTS = {
   name: (a, b) => a.name.localeCompare(b.name, 'es'),
-  origin: (a, b) => a.origin.localeCompare(b.origin) || b.count - a.count,
   count: (a, b) => b.count - a.count
 };
 
-// Filas visibles de entrada: el resto con «Ver los N motivos».
-const FIRST_ROWS = 12;
+// Filas visibles de entrada en cada grupo: el resto con «Ver los N».
+const FIRST_ROWS = 6;
 
+/** Tabla de motivos agrupada por origen (cada grupo con su subtotal) y ordenada dentro de cada grupo. */
 function MotivesTable({ detail }) {
   const [sort, setSort] = useState('count');
-  const [all, setAll] = useState(false);
+  const [open, setOpen] = useState({});
   const base = detail.record.base || 1;
-  const sorted = [...detail.motives].sort(SORTS[sort]);
-  const rows = all ? sorted : sorted.slice(0, FIRST_ROWS);
+  const notSent = detail.record.notSent || 1;
+  const groups = ORIGINS.map(([origin, label, swatch, note]) => {
+    const list = detail.motives.filter(motive => motive.origin === origin).sort(SORTS[sort]);
+    return { origin, label, swatch, note, list, total: list.reduce((sum, motive) => sum + motive.count, 0) };
+  }).filter(group => group.list.length).sort((a, b) => b.total - a.total);
   const header = (key, label, className = '') => (
     <th scope="col" aria-sort={sort === key ? (key === 'name' ? 'ascending' : 'descending') : undefined} class={cx('px-2.5 py-2 font-semibold', className)}>
       <button type="button" onClick={() => setSort(key)} class={cx('hover:text-ink', sort === key && 'text-ink')}>{label}</button>
@@ -100,43 +115,58 @@ function MotivesTable({ detail }) {
     <section aria-labelledby="mt-t" class="section-rule">
       <div>
         <h2 id="mt-t" class="text-[15px] font-bold">Mapeo de motivos de caída</h2>
-        <p class="mt-0.5 text-[12.5px] text-ink-muted">Cada lista de autosupresión y cada estado de Marketing Cloud que dejó personas sin envío. Toca un encabezado para ordenar.</p>
+        <p class="mt-0.5 text-[12.5px] text-ink-muted">
+          Cada lista de autosupresión y cada estado de Marketing Cloud que dejó personas sin envío, agrupados por origen y de mayor a menor. Toca un encabezado para ordenar.
+        </p>
       </div>
       <div class="overflow-x-auto">
         <table class="w-full min-w-[860px] border-collapse text-[13px]">
           <thead>
             <tr class="text-left text-xs text-ink-muted">
               {header('name', 'Columna o motivo de caída', 'pl-0')}
-              {header('origin', 'Origen')}
               {header('count', 'Volumen caído', 'text-right')}
               <th scope="col" class="px-2.5 py-2 text-right font-semibold">% sobre caídas</th>
               <th scope="col" class="px-2.5 py-2 text-right font-semibold">% audiencia total</th>
               <th scope="col" class="py-2 pl-2.5 font-semibold">Descripción</th>
             </tr>
           </thead>
-          <tbody>
-            {rows.map(motive => (
-              <tr key={motive.code} class="border-t border-line align-top">
-                <td class="py-2.5 pr-2.5"><span class="flex flex-col"><b class="font-semibold">{motive.name}</b><span class="text-[11.5px] text-ink-muted">{motive.code}</span></span></td>
-                <td class="px-2.5 py-2.5">
-                  <span class={cx('inline-flex h-[22px] items-center rounded-full px-2.5 text-xs font-semibold whitespace-nowrap', motive.origin === 'blq' ? 'bg-blq-soft text-blq-ink' : 'bg-asl-soft text-asl-ink')}>
-                    {motive.origin === 'blq' ? 'Bloqueo preventivo' : 'Autosupresión'}
-                  </span>
-                </td>
-                <td class="px-2.5 py-2.5 text-right font-bold">{fmtInt(motive.count)}</td>
-                <td class="px-2.5 py-2.5 text-right">{fmtPct(motive.share, 2)}</td>
-                <td class="px-2.5 py-2.5 text-right text-ink-muted">{fmtPct(motive.count / base, 2)}</td>
-                <td class="max-w-[360px] py-2.5 pl-2.5 text-ink-muted">{motive.description || '—'}</td>
-              </tr>
-            ))}
-          </tbody>
+          {groups.map(group => {
+            const all = open[group.origin];
+            const rows = all ? group.list : group.list.slice(0, FIRST_ROWS);
+            return (
+              <tbody key={group.origin}>
+                <tr class="border-t border-line-strong bg-surface-muted">
+                  <th scope="rowgroup" class="py-2.5 pr-2.5 pl-2.5 text-left">
+                    <span class="flex items-center gap-2 font-bold"><span class={cx('size-2.5 flex-none rounded-[3px]', group.swatch)} />{group.label}</span>
+                  </th>
+                  <td class="px-2.5 py-2.5 text-right font-bold">{fmtInt(group.total)}</td>
+                  <td class="px-2.5 py-2.5 text-right font-semibold">{fmtPct(group.total / notSent, 2)}</td>
+                  <td class="px-2.5 py-2.5 text-right font-semibold text-ink-muted">{fmtPct(group.total / base, 2)}</td>
+                  <td class="py-2.5 pl-2.5 text-xs text-ink-muted">{group.note}</td>
+                </tr>
+                {rows.map(motive => (
+                  <tr key={motive.code} class="border-t border-line align-top">
+                    <td class="py-2.5 pr-2.5 pl-[30px]"><span class="flex flex-col"><b class="font-semibold">{motive.name}</b><span class="text-[11.5px] text-ink-muted">{motive.code}</span></span></td>
+                    <td class="px-2.5 py-2.5 text-right font-bold">{fmtInt(motive.count)}</td>
+                    <td class="px-2.5 py-2.5 text-right">{fmtPct(motive.share, 2)}</td>
+                    <td class="px-2.5 py-2.5 text-right text-ink-muted">{fmtPct(motive.count / base, 2)}</td>
+                    <td class="max-w-[360px] py-2.5 pl-2.5 text-ink-muted">{motive.description || '—'}</td>
+                  </tr>
+                ))}
+                {group.list.length > FIRST_ROWS && (
+                  <tr class="border-t border-line">
+                    <td colSpan={5} class="py-2 pl-[30px]">
+                      <button type="button" onClick={() => setOpen({ ...open, [group.origin]: !all })} class="text-[13px] font-semibold text-brand-text hover:underline">
+                        {all ? `Ver solo los ${FIRST_ROWS} principales` : `Ver los ${group.list.length} motivos de ${group.origin === 'blq' ? 'bloqueo' : 'autosupresión'}`}
+                      </button>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            );
+          })}
         </table>
       </div>
-      {sorted.length > FIRST_ROWS && (
-        <button type="button" onClick={() => setAll(!all)} class="self-start text-[13px] font-semibold text-brand-text hover:underline">
-          {all ? `Ver solo los ${FIRST_ROWS} principales` : `Ver los ${sorted.length} motivos`}
-        </button>
-      )}
     </section>
   );
 }
@@ -161,9 +191,10 @@ export function FunnelTab({ detail }) {
           {wide && paths.length > 0 && (
             <svg aria-hidden="true" class="pointer-events-none absolute inset-0 h-full w-full overflow-visible">
               {paths.map(path => (
-                <g key={path.key}>
-                  <path d={path.d} fill="none" stroke={`var(${path.color})`} stroke-width="2" />
-                  <path d={path.tip} fill={`var(${path.color})`} />
+                <g key={path.key} fill="none" stroke={`var(${path.color})`} stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d={path.d} />
+                  <path d={path.tip} />
+                  <circle cx={path.x1} cy={path.y1} r="3" fill={`var(${path.color})`} stroke="none" />
                 </g>
               ))}
             </svg>
@@ -195,9 +226,10 @@ export function FunnelTab({ detail }) {
             <Big>{fmtInt(notSent)}</Big>
             <span class="mt-1 h-1 rounded-sm bg-surface-muted"><span class="block h-full rounded-sm bg-ink-muted" style={{ width: `${(notSent / base) * 100}%` }} /></span>
             <Note>Excluidos antes del envío.</Note>
-            <span class="mt-1.5 grid grid-cols-2 gap-1.5 text-[11.5px] font-semibold">
-              <span class="rounded-lg bg-asl-soft px-2 py-1.5 text-asl-ink">Autosupresión<br /><b class="text-[13px]">{fmtInt(detail.asl)}</b></span>
-              <span class="rounded-lg bg-blq-soft px-2 py-1.5 text-blq-ink">Bloqueos<br /><b class="text-[13px]">{fmtInt(detail.blq)}</b></span>
+            {/* Lado a lado si caben; si la caja es angosta, una debajo de otra (no se encima el texto). */}
+            <span class="mt-1.5 grid grid-cols-[repeat(auto-fit,minmax(104px,1fr))] gap-1.5 text-[11.5px] font-semibold">
+              <span class="flex min-w-0 flex-col rounded-lg bg-asl-soft px-2 py-1.5 text-asl-ink">Autosupresión<b class="text-[13px]">{fmtInt(detail.asl)}</b></span>
+              <span class="flex min-w-0 flex-col rounded-lg bg-blq-soft px-2 py-1.5 text-blq-ink">Bloqueos<b class="text-[13px]">{fmtInt(detail.blq)}</b></span>
             </span>
           </Box>
 

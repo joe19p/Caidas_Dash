@@ -129,7 +129,7 @@ export function SummaryTab({ detail, onAllMotives }) {
         <Kpi label="CTOR" value={fmtPct(rates.ctor)} delta={diff('ctor')} better="up" />
       </div>
       <Waffle detail={detail} />
-      <div class="grid grid-cols-[repeat(auto-fit,minmax(380px,1fr))] items-start gap-4">
+      <div class="grid grid-cols-[repeat(auto-fit,minmax(min(380px,100%),1fr))] items-start gap-4">
         <Motives detail={detail} onAll={onAllMotives} />
         <div class="flex flex-col gap-4">
           <Panel id="e" title="Entrega">

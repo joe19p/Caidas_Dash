@@ -8,6 +8,8 @@ import { messageText } from '@shared/messages.mjs';
 export const view = signal('general');
 /** Vista general: { status: 'loading' | 'ready' | 'error', data, error, stale }. stale = lo guardado mientras llega lo nuevo. */
 export const overview = signal({ status: 'loading', data: null, error: '', stale: false });
+/** Clave de los datos vigente: entra en la clave de cada carga, así «Actualizar datos» vuelve a pedir lo abierto. */
+export const dataKey = computed(() => overview.value.data?.cacheKey || '');
 /** Aviso corto abajo (actualizar, errores): { text, level } o null. */
 export const notice = signal(null);
 

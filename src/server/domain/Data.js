@@ -19,7 +19,7 @@ function bumpDataVersion_() {
  * periodos y «lo normal» cambian con la fecha). Si no coincide con la guardada, el navegador pide todo de nuevo.
  */
 function clientCacheKey_() {
-  return `v${dataVersion_()}:${isoDate_()}`;
+  return `s${APP.CACHE_SCHEMA}:v${dataVersion_()}:${isoDate_()}`;
 }
 
 /** Catálogo de motivos de ASL_Catalog y NotSent_Catalog. */

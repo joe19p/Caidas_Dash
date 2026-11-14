@@ -1,7 +1,12 @@
 // Vista por comunicación: (1) se elige el día en el calendario del mes, (2) se busca y elige la comunicación, y se ve
 // solo lo de ella en tres pestañas: Resumen, Motivos de no envío (Pareto) y Simulador.
-import { useEffect, useState } from 'preact/hooks';
-import { overview, pick } from '@/state/app.mjs';
+import { overview, pick, dataKey } from '@/state/app.mjs';
+import { commMonth } from '@/state/period.mjs';
+import { useLoad } from '@/lib/useLoad.mjs';
+import { selectedJobs, toggleSelected, SELECTION_MAX } from '@/state/search.mjs';
+import { Checkbox } from '@/ui/Checkbox.jsx';
+import { DestinationBar } from '@/ui/DestinationBar.jsx';
+import { BreakableName } from '@/ui/BreakableName.jsx';
 import { api } from '@/services/api.mjs';
 import { cx, fmtInt, fmtPct, hourOf, monthLong, weekdayIndex, addDays, dayLong } from '@/lib/format.mjs';
 import { Icon } from '@/ui/Icon.jsx';
@@ -13,41 +18,17 @@ import { SimulatorTab } from './SimulatorTab.jsx';
 
 const setPick = partial => { pick.value = { ...pick.value, ...partial }; };
 
-/** Carga con estado: { status, data, error } y reintento. */
-function useLoad(key, load) {
-  const [state, setState] = useState({ status: 'loading', data: null, error: '' });
-  const [attempt, setAttempt] = useState(0);
-  useEffect(() => {
-    if (!key) return undefined;
-    let alive = true;
-    // Mientras carga se conserva lo anterior del mismo mes o envío (p. ej. tras «Actualizar datos»), sin parpadeo.
-    const same = (a, b) => Boolean(a && b) && a.split('|')[1] === b.split('|')[1];
-    setState(previous => ({ status: 'loading', data: same(previous.key, key) ? previous.data : null, error: '', key }));
-    load().then(data => { if (alive) setState({ status: 'ready', data, error: '', key }); })
-      .catch(error => { if (alive) setState({ status: 'error', data: null, error: error.text || error.message, key }); });
-    return () => { alive = false; };
-  }, [key, attempt]);
-  return [state, () => setAttempt(value => value + 1)];
-}
-
-function DayPicker({ month, months, days, day }) {
-  const index = months.indexOf(month);
-  const older = months[index + 1];
-  const newer = index > 0 ? months[index - 1] : null;
+/** Calendario de días del mes elegido en la barra de arriba (el mes se cambia allí, no aquí). */
+function DayPicker({ month, days, day }) {
   const first = `${month}-01`;
   const [year, monthNumber] = month.split('-').map(Number);
   const total = new Date(Date.UTC(year, monthNumber, 0)).getUTCDate();
   const blanks = weekdayIndex(first);
-  const goMonth = target => setPick({ month: target, day: '', job: '', q: '' });
   return (
     <section class="panel flex flex-col gap-2.5 px-4 py-3.5">
       <div class="flex items-center justify-between">
         <span class="flex items-center gap-2 text-[13px] font-bold"><span class="inline-flex size-5 items-center justify-center rounded-full bg-brand text-[11.5px] text-white">1</span>Día de envío</span>
-        <span class="flex items-center gap-0.5">
-          <button type="button" aria-label="Mes anterior" disabled={!older} onClick={() => goMonth(older)} class="inline-flex size-[30px] items-center justify-center rounded-lg text-ink-muted hover:bg-surface-muted disabled:opacity-30"><Icon name="left" size={16} /></button>
-          <b class="min-w-[124px] text-center text-[13px] first-letter:uppercase">{monthLong(month)}</b>
-          <button type="button" aria-label="Mes siguiente" disabled={!newer} onClick={() => goMonth(newer)} class="inline-flex size-[30px] items-center justify-center rounded-lg text-ink-muted hover:bg-surface-muted disabled:opacity-30"><Icon name="right" size={16} /></button>
-        </span>
+        <span class="text-[13px] font-semibold text-ink-muted first-letter:uppercase">{monthLong(month)}</span>
       </div>
       <div class="grid grid-cols-7 gap-1 text-center text-[11.5px] font-semibold text-ink-muted">
         {['L', 'M', 'M', 'J', 'V', 'S', 'D'].map((letter, position) => <span key={position}>{letter}</span>)}
@@ -74,12 +55,6 @@ function DayPicker({ month, months, days, day }) {
   );
 }
 
-/** Nombre de maqueta que puede pasar de línea después de cada «_» (los nombres no tienen espacios). */
-function BreakableName({ name }) {
-  const parts = name.split('_');
-  return parts.map((part, index) => (index < parts.length - 1 ? <>{part}_<wbr /></> : part));
-}
-
 function CommList({ items, day, q, job }) {
   const query = q.trim().toLowerCase();
   const list = items.filter(item => item.start.slice(0, 10) === day && (!query || item.name.toLowerCase().includes(query)))
@@ -93,9 +68,9 @@ function CommList({ items, day, q, job }) {
           Comunicación <span class="font-medium text-ink-muted">{list.length} de {total}</span>
         </span>
         <label class="relative flex items-center">
-          <span class="sr-only">Buscar comunicación</span>
+          <span class="sr-only">Filtrar las comunicaciones de este día</span>
           <Icon name="search" size={16} class="pointer-events-none absolute left-2.5 text-ink-muted" />
-          <input type="search" value={q} onInput={event => setPick({ q: event.currentTarget.value })} placeholder="Buscar: CYBER, PROMO, ONBOARDING…"
+          <input type="search" value={q} onInput={event => setPick({ q: event.currentTarget.value })} placeholder="Filtrar este día: CYBER, PROMO…"
             autocomplete="off" class="field h-[38px] pl-8" />
         </label>
       </div>
@@ -103,22 +78,21 @@ function CommList({ items, day, q, job }) {
         {list.map(item => {
           const on = item.job === job;
           const base = item.base || 1;
-          const delivered = Math.max(0, item.deliv);
+          const chosen = selectedJobs.value.has(item.job);
           return (
-            <li key={item.job}>
+            // La casilla va fuera del botón de la fila: elige para comparar sin abrir la comunicación.
+            <li key={item.job} class={cx('flex items-start gap-2 rounded-[10px] pl-2.5', on ? 'bg-brand-soft ring-1 ring-brand-text' : 'hover:bg-surface-muted')}>
+              <Checkbox class="mt-[11px]" checked={chosen} onChange={() => toggleSelected(item)}
+                disabled={!chosen && selectedJobs.value.size >= SELECTION_MAX}
+                label={chosen ? `Quitar ${item.name} de las elegidas` : `Elegir ${item.name} para comparar`} />
               <button type="button" aria-current={on ? 'true' : undefined} onClick={() => setPick({ job: item.job })}
-                class={cx('flex w-full flex-col gap-1.5 rounded-[10px] p-2.5 text-left hover:bg-surface-muted', on && 'bg-brand-soft ring-1 ring-brand-text hover:bg-brand-soft')}>
+                class="flex min-w-0 flex-1 flex-col gap-1.5 py-2.5 pr-2.5 text-left">
                 <span class="flex items-start justify-between gap-2">
                   {/* Dos líneas, cortando en los «_»: el final del nombre (segmento, versión) distingue un envío de otro. */}
                   <span class="line-clamp-2 min-w-0 text-[13px] font-semibold wrap-break-word" title={item.name}><BreakableName name={item.name} /></span>
                   <span class="flex-none text-xs text-ink-muted">{hourOf(item.start)}</span>
                 </span>
-                <span class="flex h-1.5 gap-0.5" aria-hidden="true">
-                  <span class="rounded-l-[3px] bg-ent" style={{ width: `${(delivered / base) * 100}%` }} />
-                  <span class="bg-reb" style={{ width: `${(item.bounces / base) * 100}%` }} />
-                  <span class="bg-blq" style={{ width: `${(item.blq / base) * 100}%` }} />
-                  <span class="flex-1 rounded-r-[3px] bg-asl" />
-                </span>
+                <DestinationBar item={item} />
                 <span class="flex justify-between text-xs text-ink-muted">
                   <span>{fmtInt(item.base)} personas</span>
                   <span><b class="text-ink">{fmtPct(item.sends / base)}</b> enviado</span>
@@ -135,11 +109,8 @@ function CommList({ items, day, q, job }) {
 
 const TABS = [['funnel', 'Funnel', 'funnel'], ['resumen', 'Resumen', 'grid'], ['motivos', 'Motivos de no envío', 'bars'], ['simulador', 'Simulador', 'sliders']];
 
-// La clave de los datos entra en la de cada carga: tras «Actualizar datos» el mes y el detalle se piden de nuevo.
-const dataKey = () => overview.value.data?.cacheKey || '';
-
 function Detail({ job }) {
-  const [state, retry] = useLoad(job && `${dataKey()}|${job}`, () => api.getCommunication(job));
+  const [state, retry] = useLoad(job && `${dataKey.value}|${job}`, () => api.getCommunication(job));
   const tab = pick.value.tab;
   if (state.status === 'loading' && !state.data) return <div class="flex flex-col gap-4"><Skeleton class="h-24" /><Skeleton class="h-28" /><Skeleton class="h-72" /></div>;
   if (state.status === 'error') return <ErrorState text={state.error} onRetry={retry} />;
@@ -178,11 +149,11 @@ function Detail({ job }) {
 }
 
 export function CommunicationView() {
-  const available = overview.value.data?.available;
-  const months = available?.months || [];
+  const months = overview.value.data?.available?.months || [];
   const current = pick.value;
-  const month = current.month && months.includes(current.month) ? current.month : months[0];
-  const [state, retry] = useLoad(month && `${dataKey()}|${month}`, () => api.getMonth(month));
+  // El mes se elige en la barra de arriba (state/period.mjs); la clave de los datos recarga tras «Actualizar datos».
+  const month = commMonth.value;
+  const [state, retry] = useLoad(month && `${dataKey.value}|${month}`, () => api.getMonth(month));
   if (overview.value.status === 'loading') return <Skeleton class="h-96" />;
   if (!months.length) return <EmptyState title="Todavía no hay envíos" text="Cuando la hoja tenga envíos, aquí se eligen por día." />;
   if (state.status === 'error') return <ErrorState text={state.error} onRetry={retry} />;
@@ -196,7 +167,7 @@ export function CommunicationView() {
     <div class="flex flex-wrap items-start gap-4">
       <aside aria-label="Elegir comunicación" class="flex min-w-0 max-w-[380px] flex-[1_1_340px] flex-col gap-3">
         {data ? <>
-          <DayPicker month={month} months={months} days={days} day={day} />
+          <DayPicker month={month} days={days} day={day} />
           <CommList items={data.items} day={day} q={current.q} job={job} />
         </> : <><Skeleton class="h-72" /><Skeleton class="h-96" /></>}
       </aside>

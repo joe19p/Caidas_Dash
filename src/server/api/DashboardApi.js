@@ -4,6 +4,18 @@ function getOverview() {
   return runApi_(() => overviewData_());
 }
 
+function getPeriod(from, to) {
+  return runApi_(() => periodData_(from, to));
+}
+
+function searchCommunications(query, mode) {
+  return runApi_(() => searchData_(query, mode));
+}
+
+function getCompare(jobs) {
+  return runApi_(() => compareData_(jobs));
+}
+
 function getMonth(month) {
   return runApi_(() => monthData_(month));
 }

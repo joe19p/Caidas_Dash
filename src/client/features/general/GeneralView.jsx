@@ -1,8 +1,12 @@
 // Vista general: lo que la gerencia puede usar sin dudas. Protagonistas: comunicaciones distintas enviadas y open rate
-// frente a su histórico. Todo en tasas (no se suman personas entre comunicaciones) y por meses cerrados.
-import { useState } from 'preact/hooks';
-import { overview, loadOverview, openCommunication } from '@/state/app.mjs';
-import { cx, fmtInt, fmtPct, fmtPts, monthRange, monthShort, dayShort } from '@/lib/format.mjs';
+// frente a su histórico. Todo en tasas (no se suman personas entre comunicaciones). El periodo se elige en la barra
+// de arriba (state/period.mjs); el mes en curso va hasta hoy y se compara con los mismos días del periodo anterior.
+import { useRef, useState } from 'preact/hooks';
+import { overview, loadOverview, openCommunication, dataKey } from '@/state/app.mjs';
+import { periodRange } from '@/state/period.mjs';
+import { api } from '@/services/api.mjs';
+import { useLoad } from '@/lib/useLoad.mjs';
+import { cx, fmtInt, fmtPct, fmtPts, monthShort, dayShort, periodText, monthCount, daysInMonth } from '@/lib/format.mjs';
 import { Segmented } from '@/ui/Segmented.jsx';
 import { Sparkline } from '@/ui/Sparkline.jsx';
 import { Panel } from '@/ui/Panel.jsx';
@@ -14,7 +18,10 @@ import { METRICS, SECONDARY, rateOf, valueOf, formatValue } from './metricsDefs.
 import { Timeline } from './Timeline.jsx';
 import { CalendarHeat } from './CalendarHeat.jsx';
 
-const PERIODS = [{ value: 1, label: 'Mes cerrado' }, { value: 3, label: 'U3M' }, { value: 6, label: 'U6M' }, { value: 12, label: 'U12M' }];
+/** Meses del periodo, con el mes en curso contado por la parte que va (14 de 30 días = 0.47). */
+const monthsIn = period => monthCount(period.from, period.to) - (period.cut ? 1 - period.cut / daysInMonth(period.to) : 0);
+/** Si un mes del historial cae en el periodo. */
+const inPeriod = (month, period) => month >= period.from && month <= period.to;
 const MODES = [
   { value: 'com', label: 'Por comunicación', help: 'Cada comunicación pesa igual (mediana)' },
   { value: 'vol', label: 'Por volumen', help: 'Las comunicaciones grandes pesan más' }
@@ -34,26 +41,37 @@ function deltaText(key, now, before) {
   return { text: `${delta >= 0 ? '▲' : '▼'} ${fmtPts(Math.abs(delta), digits).replace('+', '')} vs anterior`, tone: deltaTone(delta, METRICS[key].better) };
 }
 
-function HeroComms({ period, history, months, active, onPick }) {
+function HeroComms({ period, history, active, onPick }) {
   const delta = deltaText('comms', period.kpis.comms, period.prev.sends ? period.prev.comms : null);
   const max = Math.max(...history.map(item => item.comms), 1);
   const width = 520 / history.length;
+  const several = monthCount(period.from, period.to) > 1;
   return (
     <button type="button" aria-pressed={active} onClick={onPick}
       class={cx('panel flex flex-col gap-2 px-6 pt-5 pb-3.5 text-left', active ? 'border-brand-text ring-3 ring-brand-soft' : '')}>
       <span class="text-[13px] font-bold text-ink-muted">Comunicaciones distintas enviadas</span>
       <span class="flex flex-wrap items-baseline gap-x-3.5 gap-y-1.5">
         <b class="text-[52px] leading-none font-extrabold tracking-tight">{fmtInt(period.kpis.comms)}</b>
-        <span class="text-sm text-ink-muted">unas <b class="text-ink">{fmtInt(period.kpis.comms / months)}</b> por mes, en {fmtInt(period.kpis.sends)} envíos</span>
+        <span class="text-sm text-ink-muted">
+          {several ? <>unas <b class="text-ink">{fmtInt(period.kpis.comms / monthsIn(period))}</b> por mes, en </> : period.cut ? `en los primeros ${period.cut} días, en ` : 'en '}
+          {fmtInt(period.kpis.sends)} envíos
+        </span>
       </span>
       <span class={cx('text-[13px] font-semibold', delta.tone)}>{delta.text}</span>
-      <svg role="img" aria-label="Comunicaciones por mes, últimos 24 meses" viewBox="0 0 520 110" class="mt-1 block h-auto w-full">
+      <svg role="img" aria-label="Comunicaciones por mes, últimos 24 meses y el mes en curso" viewBox="0 0 520 110" class="mt-1 block h-auto w-full">
+        {/* El mes en curso va a medias: rayado. */}
+        <defs>
+          <pattern id="partial-month" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+            <rect width="6" height="6" fill="var(--color-brand-soft)" />
+            <rect width="3" height="6" fill="var(--color-series)" />
+          </pattern>
+        </defs>
         {history.map((item, index) => {
           const height = (item.comms / max) * 92;
+          const fill = !inPeriod(item.month, period) ? 'var(--color-line-strong)' : item.partial ? 'url(#partial-month)' : 'var(--color-series)';
           return (
-            <rect key={item.month} x={index * width + 2} y={96 - height} width={Math.max(1, width - 4)} height={height} rx="3"
-              fill={index >= history.length - months ? 'var(--color-series)' : 'var(--color-line-strong)'}>
-              <title>{`${monthShort(item.month)}: ${item.comms} comunicaciones`}</title>
+            <rect key={item.month} x={index * width + 2} y={96 - height} width={Math.max(1, width - 4)} height={height} rx="3" fill={fill}>
+              <title>{`${monthShort(item.month)}: ${item.comms} comunicaciones${item.partial ? ' (mes en curso, hasta hoy)' : ''}`}</title>
             </rect>
           );
         })}
@@ -64,7 +82,7 @@ function HeroComms({ period, history, months, active, onPick }) {
   );
 }
 
-function HeroOpen({ period, historic, history, months, mode, active, onPick }) {
+function HeroOpen({ period, historic, history, mode, active, onPick }) {
   const value = rateOf(period.kpis.metrics.or, mode);
   const hist = rateOf(historic.metrics.or, mode);
   const diff = value != null && hist != null ? value - hist : null;
@@ -76,6 +94,8 @@ function HeroOpen({ period, historic, history, months, mode, active, onPick }) {
   const oy = rate => 92 - ((rate - low) / (high - low || 1)) * 84;
   const line = series.map((rate, index) => (rate == null ? null : `${ox(index).toFixed(1)},${oy(rate).toFixed(1)}`)).filter(Boolean).join(' ');
   const lastIndex = series.length - 1;
+  const inside = history.map((item, index) => (inPeriod(item.month, period) ? index : -1)).filter(index => index >= 0);
+  const partialLast = history[lastIndex]?.partial;
   return (
     <button type="button" aria-pressed={active} onClick={onPick}
       class={cx('panel flex flex-col gap-2 px-6 pt-5 pb-3.5 text-left', active ? 'border-brand-text ring-3 ring-brand-soft' : '')}>
@@ -88,13 +108,15 @@ function HeroOpen({ period, historic, history, months, mode, active, onPick }) {
         {diff == null ? 'Sin histórico para comparar' : Math.abs(diff) < 0.001 ? 'Igual a su promedio histórico' : `${diff > 0 ? '▲' : '▼'} ${fmtPts(Math.abs(diff)).replace('+', '')} frente a su promedio histórico`}
       </span>
       <svg role="img" aria-label="Open rate por mes frente al promedio histórico" viewBox="0 0 520 110" class="mt-1 block h-auto w-full">
-        <rect x={ox(series.length - months) - 10} y="0" width={ox(lastIndex) - ox(series.length - months) + 20} height="96" rx="4" fill="var(--color-brand-soft)" opacity="0.6" />
+        {inside.length > 0 && <rect x={ox(inside[0]) - 10} y="0" width={ox(inside[inside.length - 1]) - ox(inside[0]) + 20} height="96" rx="4" fill="var(--color-brand-soft)" opacity="0.6" />}
         {hist != null && <>
           <line x1="0" x2="520" y1={oy(hist)} y2={oy(hist)} stroke="var(--color-ink-muted)" stroke-width="1.5" stroke-dasharray="5 5" />
           <text x="4" y={oy(hist) - 6} font-size="11" font-weight="600" fill="var(--color-ink-muted)">Histórico {fmtPct(hist)}</text>
         </>}
         <polyline points={line} fill="none" stroke="var(--color-series)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" />
-        {series[lastIndex] != null && <circle cx={ox(lastIndex)} cy={oy(series[lastIndex])} r="4.5" fill="var(--color-series)" stroke="var(--color-surface)" stroke-width="2" />}
+        {/* El mes en curso, hueco: va a medias. */}
+        {series[lastIndex] != null && <circle cx={ox(lastIndex)} cy={oy(series[lastIndex])} r="4.5" fill={partialLast ? 'var(--color-surface)' : 'var(--color-series)'}
+          stroke={partialLast ? 'var(--color-series)' : 'var(--color-surface)'} stroke-width="2" />}
         <text x="0" y="108" font-size="11" fill="var(--color-ink-muted)">{monthShort(history[0].month)}</text>
         <text x="520" y="108" text-anchor="end" font-size="11" fill="var(--color-ink-muted)">{monthShort(history[lastIndex].month)}</text>
       </svg>
@@ -208,26 +230,57 @@ function ReviewPanel({ review }) {
   );
 }
 
+/** Qué periodo se ve y contra qué se compara, en una frase. */
+function PeriodSentence({ period }) {
+  const now = periodText(period.from, period.to, period.cut);
+  if (!period.prev.sends) return <>{now}. No hay envíos en el periodo anterior para comparar.</>;
+  return (
+    <>
+      {now}, comparado con {periodText(period.prevFrom, period.prevTo, period.cut)}.
+      {period.cut ? ` El mes en curso va hasta hoy, así que el periodo anterior también llega hasta el día ${period.cut}.` : ''}
+    </>
+  );
+}
+
+/**
+ * El periodo de la barra: los que terminan en el mes en curso vienen con la vista general; los demás se piden
+ * (getPeriod, con caché). Mientras llega uno nuevo se sigue viendo el anterior, atenuado.
+ */
+function usePeriod(data) {
+  const range = periodRange.value;
+  const inline = data && range ? Object.values(data.periods).find(item => item.from === range.from && item.to === range.to) : null;
+  const key = data && range && !inline ? `${dataKey.value}|${range.from}:${range.to}` : '';
+  const [state, retry] = useLoad(key, () => api.getPeriod(range.from, range.to), { keepPrevious: true });
+  const shown = useRef(null);
+  const period = inline || (state.status === 'ready' ? state.data : null);
+  if (period) shown.current = period;
+  return {
+    period: period || shown.current,
+    loading: !inline && state.status === 'loading',
+    error: !inline && state.status === 'error' ? state.error : '',
+    retry
+  };
+}
+
 export function GeneralView() {
-  const [months, setMonths] = useState(3);
   const [mode, setMode] = useState('com');
   const [metric, setMetric] = useState('or');
   const state = overview.value;
+  const { period, loading, error, retry } = usePeriod(state.data);
   if (state.status === 'loading') return <div class="flex flex-col gap-4"><Skeleton class="h-12" /><div class="grid gap-4 md:grid-cols-2"><Skeleton class="h-56" /><Skeleton class="h-56" /></div><Skeleton class="h-80" /></div>;
   if (state.status === 'error') return <ErrorState text={state.error} onRetry={loadOverview} />;
   const data = state.data;
   if (!data.total) return <EmptyState title="Todavía no hay envíos" text={messageText('NO_DATA')} />;
-  const period = data.periods[months];
+  if (error) return <ErrorState text={error} onRetry={retry} />;
+  if (!period) return <div class="flex flex-col gap-4"><Skeleton class="h-12" /><div class="grid gap-4 md:grid-cols-2"><Skeleton class="h-56" /><Skeleton class="h-56" /></div></div>;
   return (
-    <>
+    <div class={cx('flex flex-col gap-4 transition-opacity', loading && 'opacity-60')} aria-busy={loading}>
       <div class="panel flex flex-wrap items-center gap-x-3.5 gap-y-2.5 px-4 py-2.5">
-        <Segmented label="Periodo" value={months} onChange={setMonths} options={PERIODS} />
-        <span class="text-[13px] text-ink-muted">
-          {monthRange(period.from, period.to)}, comparado con {monthRange(period.prevFrom, period.prevTo)}. El mes en curso entra al cerrar.
+        <p class="min-w-0 flex-[1_1_320px] text-[13px] text-ink-muted first-letter:uppercase" aria-live="polite"><PeriodSentence period={period} /></p>
+        <span class="flex flex-wrap items-center gap-x-3.5 gap-y-1.5">
+          <span class="text-[13px] font-semibold text-ink-muted">Promediar</span>
+          <Segmented label="Cómo promediar" value={mode} onChange={setMode} options={MODES} />
         </span>
-        <span class="flex-1" />
-        <span class="text-[13px] font-semibold text-ink-muted">Promediar</span>
-        <Segmented label="Cómo promediar" value={mode} onChange={setMode} options={MODES} />
       </div>
 
       <p class="flex items-start gap-2.5 rounded-xl bg-brand-soft px-3.5 py-2.5 text-[13px] leading-snug">
@@ -238,9 +291,9 @@ export function GeneralView() {
         </span>
       </p>
 
-      <section aria-label="Lo principal del periodo" class="grid grid-cols-[repeat(auto-fit,minmax(460px,1fr))] gap-4">
-        <HeroComms period={period} history={data.history} months={months} active={metric === 'comms'} onPick={() => setMetric('comms')} />
-        <HeroOpen period={period} historic={data.historic} history={data.history} months={months} mode={mode} active={metric === 'or'} onPick={() => setMetric('or')} />
+      <section aria-label="Lo principal del periodo" class="grid grid-cols-[repeat(auto-fit,minmax(min(460px,100%),1fr))] gap-4">
+        <HeroComms period={period} history={data.history} active={metric === 'comms'} onPick={() => setMetric('comms')} />
+        <HeroOpen period={period} historic={data.historic} history={data.history} mode={mode} active={metric === 'or'} onPick={() => setMetric('or')} />
       </section>
 
       <section aria-label="Otros indicadores del periodo" class="grid grid-cols-[repeat(auto-fit,minmax(190px,1fr))] gap-2.5">
@@ -249,16 +302,16 @@ export function GeneralView() {
         ))}
       </section>
 
-      <section class="section-rule"><Timeline history={data.history} metric={metric} mode={mode} months={months} /></section>
+      <section class="section-rule"><Timeline history={data.history} metric={metric} mode={mode} period={period} /></section>
 
-      <CalendarHeat calendar={data.calendar} />
+      <CalendarHeat calendar={period.calendar} />
 
-      <div class="grid grid-cols-[repeat(auto-fit,minmax(420px,1fr))] gap-4">
+      <div class="grid grid-cols-[repeat(auto-fit,minmax(min(420px,100%),1fr))] gap-4">
         <FamiliesPanel families={period.families} mode={mode} />
         <RulesPanel rules={period.rules} mode={mode} />
       </div>
 
       <ReviewPanel review={period.review} />
-    </>
+    </div>
   );
 }

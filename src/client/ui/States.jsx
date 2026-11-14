@@ -5,12 +5,14 @@ export function Skeleton({ class: className = 'h-24' }) {
   return <div class={`animate-pulse rounded-card bg-surface-muted ${className}`} aria-hidden="true" />;
 }
 
-export function EmptyState({ title, text }) {
+/** children: acción opcional (un botón) debajo del texto. */
+export function EmptyState({ title, text, children }) {
   return (
     <div class="panel flex flex-col items-center gap-2 p-10 text-center">
       <Icon name="info" size={22} class="text-brand-text" />
       <b class="text-[15px]">{title}</b>
       {text && <p class="max-w-md text-[13px] text-ink-muted">{text}</p>}
+      {children && <div class="mt-2">{children}</div>}
     </div>
   );
 }

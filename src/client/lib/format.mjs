@@ -47,6 +47,21 @@ export function shiftMonth(month, delta) {
   return `${Math.floor(index / 12)}-${String((index % 12) + 1).padStart(2, '0')}`;
 }
 
+/** Cuántos meses hay de from a to (incluidos). */
+export const monthCount = (from, to) => { const [fy, fm] = monthParts(from); const [ty, tm] = monthParts(to); return (ty - fy) * 12 + tm - fm + 1; };
+
+/** Días del mes «AAAA-MM». */
+export const daysInMonth = month => { const [y, m] = monthParts(month); return new Date(Date.UTC(y, m, 0)).getUTCDate(); };
+
+/**
+ * Texto de un periodo de meses; con cut (día), el último mes llega hasta ese día:
+ * «noviembre 2026», «1 – 14 nov 26», «set 26 – nov 26», «set 26 – 14 nov 26».
+ */
+export function periodText(from, to, cut) {
+  if (from === to) return cut ? `1 – ${cut} ${monthShort(to)}` : monthLong(to);
+  return `${monthShort(from)} – ${cut ? `${cut} ` : ''}${monthShort(to)}`;
+}
+
 const dateOf = ymd => { const [y, m, d] = ymd.slice(0, 10).split('-').map(Number); return new Date(Date.UTC(y, m - 1, d)); };
 /** «martes 12 de nov». */
 export const dayLong = ymd => { const d = dateOf(ymd); return `${WEEKDAYS_LONG[d.getUTCDay()]} ${d.getUTCDate()} de ${MONTHS[d.getUTCMonth()]}`; };
