@@ -1,0 +1,8 @@
+{
+  "name": "node-domexception",
+  "version": "1.0.0",
+  "description": "Reemplazo local del paquete obsoleto node-domexception (lo usa clasp por dentro): Node 22 ya trae DOMException.",
+  "private": true,
+  "main": "index.js",
+  "license": "MIT"
+}

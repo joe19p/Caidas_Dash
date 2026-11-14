@@ -28,7 +28,7 @@ export default [
     rules: { 'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z]', argsIgnorePattern: '^_' }] }
   },
   {
-    files: ['scripts/**/*.js'],
+    files: ['scripts/**/*.js', 'shims/**/*.js'],
     languageOptions: { ecmaVersion: 2022, sourceType: 'commonjs', globals: { ...globals.node } }
   },
   {
