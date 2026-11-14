@@ -7,6 +7,7 @@ import { cx, fmtInt, fmtPct, hourOf, monthLong, weekdayIndex, addDays, dayLong }
 import { Icon } from '@/ui/Icon.jsx';
 import { Skeleton, EmptyState, ErrorState } from '@/ui/States.jsx';
 import { SummaryTab } from './SummaryTab.jsx';
+import { FunnelTab } from './FunnelTab.jsx';
 import { ParetoTab } from './ParetoTab.jsx';
 import { SimulatorTab } from './SimulatorTab.jsx';
 
@@ -123,7 +124,7 @@ function CommList({ items, day, q, job }) {
   );
 }
 
-const TABS = [['resumen', 'Resumen', 'grid'], ['motivos', 'Motivos de no envío', 'bars'], ['simulador', 'Simulador', 'sliders']];
+const TABS = [['funnel', 'Funnel', 'funnel'], ['resumen', 'Resumen', 'grid'], ['motivos', 'Motivos de no envío', 'bars'], ['simulador', 'Simulador', 'sliders']];
 
 function Detail({ job }) {
   const [state, retry] = useLoad(job, () => api.getCommunication(job));
@@ -156,7 +157,10 @@ function Detail({ job }) {
           </button>
         ))}
       </div>
-      {tab === 'motivos' ? <ParetoTab detail={detail} /> : tab === 'simulador' ? <SimulatorTab key={record.job} detail={detail} /> : <SummaryTab detail={detail} onAllMotives={() => setPick({ tab: 'motivos' })} />}
+      {tab === 'resumen' ? <SummaryTab detail={detail} onAllMotives={() => setPick({ tab: 'motivos' })} />
+        : tab === 'motivos' ? <ParetoTab detail={detail} />
+          : tab === 'simulador' ? <SimulatorTab key={record.job} detail={detail} />
+            : <FunnelTab key={record.job} detail={detail} />}
     </div>
   );
 }

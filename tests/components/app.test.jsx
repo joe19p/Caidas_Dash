@@ -17,7 +17,12 @@ test('vista general y vista por comunicación', async () => {
   expect(await screen.findByText(/ponderadas por volumen/)).toBeTruthy();
 
   fireEvent.click(within(screen.getByRole('navigation', { name: 'Vistas' })).getByRole('button', { name: 'Por comunicación' }));
-  expect(await screen.findByText('Por qué no se envió', {}, wait)).toBeTruthy();
+  // Abre en la pestaña Funnel (el reporte original en pequeño) con su tabla de motivos.
+  expect(await screen.findByText('Funnel de procesamiento de audiencia', {}, wait)).toBeTruthy();
+  expect(screen.getByText('Mapeo de motivos de caída')).toBeTruthy();
+  fireEvent.click(screen.getByRole('button', { name: 'Volumen caído' }));
+  fireEvent.click(screen.getByRole('button', { name: /^Resumen$/ }));
+  expect(await screen.findByText('Por qué no se envió')).toBeTruthy();
   expect(screen.getByText(/De cada 100 personas de esta comunicación/)).toBeTruthy();
   fireEvent.click(screen.getByRole('button', { name: /Motivos de no envío/ }));
   expect(await screen.findByText(/el 80 % de lo que no se envió/)).toBeTruthy();

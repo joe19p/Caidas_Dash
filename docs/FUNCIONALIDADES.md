@@ -31,6 +31,10 @@
 
 Pestañas:
 
+- **Funnel** (la que abre por defecto): el «Funnel de procesamiento de audiencia» del reporte original, en pequeño.
+  Cuatro niveles (origen, procesamiento, cuatro pilares, engagement y desgloses) unidos por flechas del color del
+  destino; en pantallas angostas se apilan. Debajo, la tabla «Mapeo de motivos de caída» (volumen, % sobre caídas,
+  % de la audiencia y descripción), ordenable.
 - **Resumen:** audiencia, no enviados, enviados, entrega, apertura y CTOR contra lo normal; «de cada 100 personas»
   (cuadrícula y tabla con lo normal); por qué no se envió (8 motivos con su peso normal); entrega y tipo de rebote;
   interacción.

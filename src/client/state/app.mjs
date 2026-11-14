@@ -11,7 +11,7 @@ export const overview = signal({ status: 'loading', data: null, error: '', stale
 export const notice = signal(null);
 
 /** Lo elegido en «Por comunicación»: mes, día, búsqueda, envío y pestaña. */
-export const pick = signal({ month: '', day: '', q: '', job: '', tab: 'resumen' });
+export const pick = signal({ month: '', day: '', q: '', job: '', tab: 'funnel' });
 
 const STORED_OVERVIEW = 'overview_v1';
 
@@ -54,7 +54,7 @@ export function showNotice(text, level = 'success') {
 }
 
 /** Abre la vista por comunicación en un día (y, si se indica, en un envío). */
-export function openCommunication({ day, job = '', tab = 'resumen' }) {
+export function openCommunication({ day, job = '', tab = 'funnel' }) {
   pick.value = { month: day.slice(0, 7), day, q: '', job, tab };
   view.value = 'comm';
   globalThis.scrollTo?.({ top: 0 });

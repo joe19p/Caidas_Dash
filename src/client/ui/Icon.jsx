@@ -11,6 +11,7 @@ const PATHS = {
   moon: 'M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z',
   monitor: 'M3 4h18v12H3zM8 20h8M12 16v4',
   grid: 'M4 4h7v7H4zM13 4h7v4h-7zM13 10h7v10h-7zM4 13h7v7H4z',
+  funnel: 'M3 4h18l-7 8v6l-4 2v-8z',
   bars: 'M4 20V10M10 20V4M16 20v-7M22 20H2',
   sliders: 'M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M14 4v4M8 10v4M16 16v4',
   lock: 'M5 11h14v10H5zM8 11V7a4 4 0 0 1 8 0v4',
