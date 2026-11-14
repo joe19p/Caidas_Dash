@@ -1,0 +1,4 @@
+{
+  "prod": { "project": ".clasp.json", "deploymentId": "" },
+  "dev": { "project": ".clasp.dev.json", "deploymentId": "" }
+}

@@ -1,0 +1,45 @@
+{
+  "name": "caidas-dash",
+  "version": "0.1.0",
+  "description": "Web App en Google Apps Script: dashboard de envíos y caídas de email de Marketing Cloud",
+  "private": true,
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build && node scripts/verify-build.js",
+    "build:dev": "vite build --mode development && node scripts/verify-build.js",
+    "test": "node --test \"tests/unit/**/*.test.mjs\"",
+    "test:unit": "vitest run",
+    "lint": "eslint . && node scripts/lint-server.mjs",
+    "check": "npm run lint && npm test && npm run test:unit",
+    "push:dev": "node scripts/clasp.js dev push --build",
+    "push": "node scripts/clasp.js prod push --build",
+    "deploy:dev": "node scripts/clasp.js dev release",
+    "deploy": "node scripts/clasp.js prod release",
+    "open": "node scripts/clasp.js prod open",
+    "open:dev": "node scripts/clasp.js dev open",
+    "status": "node scripts/clasp.js prod status",
+    "logs": "node scripts/clasp.js prod logs"
+  },
+  "dependencies": {
+    "@preact/signals": "^2.11.3",
+    "preact": "^10.29.8"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@google/clasp": "^3.4.1",
+    "@preact/preset-vite": "^2.10.6",
+    "@tailwindcss/vite": "^4.1.0",
+    "@testing-library/preact": "^3.2.4",
+    "@types/google-apps-script": "^1.0.84",
+    "eslint": "^10.13.0",
+    "globals": "^17.12.0",
+    "happy-dom": "^20.14.6",
+    "tailwindcss": "^4.1.0",
+    "vite": "^7.3.6",
+    "vite-plugin-singlefile": "^2.3.3",
+    "vitest": "^4.1.11"
+  }
+}

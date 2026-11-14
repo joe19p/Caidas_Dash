@@ -1,0 +1,121 @@
+/* Estilos de la app: Tailwind v4 compilado por @tailwindcss/vite e incrustado en Index.html. */
+/* source(..): Tailwind busca clases solo en src/client. */
+@import "tailwindcss" source("..");
+
+/* Tokens de diseño (los de Seguimiento_Holding y el cronograma): generan utilidades como bg-brand, text-ink-muted. */
+/* static: también se emiten las variables que solo usan los gráficos (fill/stroke con var(--color-…)). */
+@theme static {
+  --font-sans: "Schibsted Grotesk", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --color-brand: #001391;
+  --color-brand-strong: #070e46;
+  --color-brand-text: #001391;
+  --color-brand-soft: #e8ecff;
+  --color-chrome: #001391;
+  --color-ink: #14182b;
+  --color-ink-muted: #5d6478;
+  --color-line: #e2e5ee;
+  --color-line-strong: #c9ced8;
+  --color-surface: #ffffff;
+  --color-surface-muted: #f4f6fa;
+  --color-canvas: #eef1f7;
+  --color-track: #dfe3ea;
+  --color-success: #16825a;
+  --color-success-soft: #e4f4ec;
+  --color-warning: #b7791f;
+  --color-warning-soft: #fdf3dc;
+  --color-warning-ink: #7a5200;
+  --color-danger: #c8433a;
+  --color-danger-soft: #fbe7e5;
+  --color-danger-ink: #9e2f27;
+
+  /* Destino de la audiencia (paleta validada para daltonismo en claro y oscuro): entregados, rebotes, bloqueos y autosupresión. */
+  --color-ent: #2563d6;
+  --color-ent-2: #9dbcf2;
+  --color-reb: #c8433a;
+  --color-blq: #7c3aed;
+  --color-blq-soft: #f0e9fb;
+  --color-blq-ink: #5b2f9e;
+  --color-asl: #e08a1c;
+  --color-asl-soft: #fdf3dc;
+  --color-asl-ink: #7a5200;
+  /* Serie de las líneas de tiempo y su franja. */
+  --color-series: #2563d6;
+  /* Escala secuencial del calendario (más oscuro = más) y el texto que se lee sobre cada paso. */
+  --color-s1: #e8ecff;
+  --color-s2: #bcc7f7;
+  --color-s3: #8a9cec;
+  --color-s4: #5068d8;
+  --color-s5: #22349f;
+  --color-on-s1: #14182b;
+  --color-on-s2: #14182b;
+  --color-on-s3: #14182b;
+  --color-on-s4: #ffffff;
+  --color-on-s5: #ffffff;
+
+  --shadow-float: 0 24px 60px -12px rgb(20 24 43 / 0.28), 0 2px 8px rgb(20 24 43 / 0.08);
+  --radius-card: 0.875rem;
+}
+
+/* Modo oscuro: mismos tokens con valores para fondo oscuro. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --color-brand: #4f68e6;
+  --color-brand-strong: #3d55d4;
+  --color-brand-text: #9fb0ff;
+  --color-brand-soft: #232a52;
+  --color-chrome: #0c1554;
+  --color-ink: #e8eaf4;
+  --color-ink-muted: #a2a8c3;
+  --color-line: #2a3050;
+  --color-line-strong: #3a4170;
+  --color-surface: #171b2e;
+  --color-surface-muted: #1f2440;
+  --color-canvas: #0f1220;
+  --color-track: #2c3354;
+  --color-success: #4cc282;
+  --color-success-soft: #173828;
+  --color-warning: #f0b75a;
+  --color-warning-soft: #3a2f12;
+  --color-warning-ink: #f3c766;
+  --color-danger: #ff7a7a;
+  --color-danger-soft: #3a1c1a;
+  --color-danger-ink: #ff9d94;
+  --color-ent: #4f7fe6;
+  --color-ent-2: #2f4f8f;
+  --color-reb: #e0564c;
+  --color-blq: #8d5cf0;
+  --color-blq-soft: #2a2140;
+  --color-blq-ink: #c9b2f2;
+  --color-asl: #c98226;
+  --color-asl-soft: #33280f;
+  --color-asl-ink: #f3c766;
+  --color-series: #6f97ff;
+  --color-s1: #1d2347;
+  --color-s2: #2a3a80;
+  --color-s3: #3a54bd;
+  --color-s4: #6680ec;
+  --color-s5: #aab9ff;
+  --color-on-s1: #e8eaf4;
+  --color-on-s2: #e8eaf4;
+  --color-on-s3: #ffffff;
+  --color-on-s4: #0f1220;
+  --color-on-s5: #0f1220;
+  --shadow-float: 0 24px 60px -12px rgb(0 0 0 / 0.7), 0 2px 8px rgb(0 0 0 / 0.4);
+}
+
+/* Patrones repetidos que no conviene escribir como lista de utilidades en cada JSX. */
+@utility btn {
+  @apply inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-line-strong bg-surface px-3.5 text-sm font-semibold text-ink transition-colors hover:bg-surface-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-text disabled:cursor-not-allowed disabled:opacity-50;
+}
+@utility btn-primary { @apply btn border-brand bg-brand text-white hover:bg-brand-strong; }
+@utility chrome-btn {
+  @apply inline-flex h-9 items-center gap-2 rounded-xl border border-white/25 px-3 text-sm font-semibold whitespace-nowrap text-white transition-colors hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white disabled:opacity-60;
+}
+@utility panel { @apply rounded-card border border-line bg-surface; }
+@utility field {
+  @apply h-9 w-full rounded-lg border border-line bg-surface px-2.5 text-sm text-ink placeholder:text-ink-muted focus-visible:border-brand-text focus-visible:outline-none;
+}
+@utility eyebrow { @apply text-xs font-bold tracking-[0.06em] text-brand-text uppercase; }
+
+/* Las cifras usan la misma letra que el resto: en esta fuente las cifras tabulares parecen de máquina de escribir. */

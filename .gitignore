@@ -1,0 +1,22 @@
+node_modules/
+dist/
+test-results/
+playwright-report/
+reports/
+.vite-app/
+*.log
+.env
+.env.*
+!.env.example
+.clasprc.json
+.claude/settings.local.json
+.DS_Store
+Thumbs.db
+# Proyecto de pruebas: cada desarrollador apunta al suyo.
+.clasp.dev.json
+
+# Capturas generadas por las pruebas y revisiones visuales.
+/artifacts/**/*.png
+
+# Proyecto de clasp: cada uno apunta al suyo (copiar de los .example).
+.clasp.json

@@ -1,0 +1,26 @@
+// Estados de carga, vacío y error: nunca una pantalla en blanco.
+import { Icon } from './Icon.jsx';
+
+export function Skeleton({ class: className = 'h-24' }) {
+  return <div class={`animate-pulse rounded-card bg-surface-muted ${className}`} aria-hidden="true" />;
+}
+
+export function EmptyState({ title, text }) {
+  return (
+    <div class="panel flex flex-col items-center gap-2 p-10 text-center">
+      <Icon name="info" size={22} class="text-brand-text" />
+      <b class="text-[15px]">{title}</b>
+      {text && <p class="max-w-md text-[13px] text-ink-muted">{text}</p>}
+    </div>
+  );
+}
+
+export function ErrorState({ text, onRetry }) {
+  return (
+    <div role="alert" class="panel flex flex-col items-center gap-3 p-10 text-center">
+      <Icon name="alert" size={22} class="text-danger" />
+      <p class="max-w-md text-[13px]">{text}</p>
+      {onRetry && <button type="button" class="btn" onClick={onRetry}><Icon name="refresh" size={16} />Reintentar</button>}
+    </div>
+  );
+}
